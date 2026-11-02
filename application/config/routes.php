@@ -300,6 +300,11 @@ $route['api/v1/student/placement']        = 'api_v1/student_placement';
 // TQ-LIVE — begin
 $route['api/v1/student/sessions/(:num)/join']   = 'api_v1/session_join/$1';
 $route['api/v1/student/sessions/(:num)/ics']    = 'api_v1/session_ics/$1';
+$route['api/v1/student/sessions/(:num)/reschedule-options'] = 'api_v1/session_reschedule_options/$1';
+$route['api/v1/student/sessions/(:num)/reschedule']    = 'api_v1/session_reschedule/$1';
+$route['api/v1/student/sessions/(:num)/teacher-fault'] = 'api_v1/session_teacher_fault/$1';
+$route['api/v1/student/sessions/(:num)/recording']     = 'api_v1/session_recording/$1';
+$route['api/v1/parent/sessions/(:num)/recording']      = 'api_v1/session_recording/$1';
 // TQ-LIVE — end
 $route['api/v1/student/sessions/(:num)/pay']    = 'api_v1/session_pay/$1';
 $route['api/v1/student/sessions/(:num)/cancel'] = 'api_v1/session_cancel/$1';
@@ -346,6 +351,10 @@ $route['api/v1/teacher/wallet']                        = 'api_v1/teacher_wallet'
 // TQ-LIVE — begin
 $route['api/v1/teacher/sessions/(:num)/join']          = 'api_v1/teacher_session_join/$1';
 $route['api/v1/teacher/sessions/(:num)/ics']           = 'api_v1/teacher_session_ics/$1';
+$route['api/v1/teacher/sessions/(:num)/reschedule-options'] = 'api_v1/teacher_session_reschedule_options/$1';
+$route['api/v1/teacher/sessions/(:num)/reschedule']    = 'api_v1/teacher_session_reschedule/$1';
+$route['api/v1/teacher/sessions/(:num)/cancel']        = 'api_v1/teacher_session_cancel/$1';
+$route['api/v1/teacher/sessions/(:num)/recording']     = 'api_v1/session_recording/$1';
 // TQ-LIVE — end
 $route['api/v1/teacher/sessions/(:num)/decide']        = 'api_v1/teacher_session_decide/$1';
 $route['api/v1/teacher/sessions/(:num)/complete']      = 'api_v1/teacher_session_complete/$1';

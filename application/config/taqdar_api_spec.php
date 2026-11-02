@@ -4188,6 +4188,82 @@ $spec = array(
 )),
 // TQ-LIVE — end
 
+// TQ-LIVE phase 2/3 — begin
+'/api/v1/student/sessions/{id}/reschedule-options' => array('get' => array(
+    'tags' => array('Sessions'),
+    'summary' => 'Open slots a session can move to',
+    'description' => 'Open future slots of the **same teacher** in the same scope (grade/subject, or foundation track). Same list the web shows. Each item: `id`, `starts_at`, `when_text`.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                                'schema' => array('type' => 'integer'))),
+    'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '403' => $r_403, '429' => $r_429),
+)),
+
+'/api/v1/student/sessions/{id}/reschedule' => array('post' => array(
+    'tags' => array('Sessions'),
+    'summary' => 'Reschedule a session (student: once, up to 12h before)',
+    'description' => implode("\n", array(
+        'D6: the student may move a `confirmed` or `awaiting_payment` session **once**, up to',
+        '`tq_session_reschedule_hours` (default 12) before it starts, to an open slot of the same teacher',
+        'and scope. Price and invoice are unchanged. The teacher and linked parents are notified.',
+        'On refusal `errors.reason` is one of `status` · `past` · `count` · `window`.',
+        'Session payloads carry `can_reschedule`, `reschedule_block`, `reschedule_count`.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                                'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('slot_id'), 'properties' => array('slot_id' => array('type' => 'integer'))),
+    ))),
+    'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '403' => $r_403,
+                         '409' => $err_ref('Not allowed now.', array('message' => 'أجلت هذه الحصة من قبل، والتأجيل مرة واحدة لكل حصة.',
+                                                                      'code' => 'reschedule_failed')),
+                         '422' => $r_422, '429' => $r_429),
+)),
+
+'/api/v1/student/sessions/{id}/teacher-fault' => array('post' => array(
+    'tags' => array('Sessions'),
+    'summary' => 'Choose after the teacher cancelled or did not show',
+    'description' => implode("\n", array(
+        'D5/D10: when a session payload has `action` = `teacher_fault` (teacher cancelled a paid session,',
+        '`refund_state` = `choice`) or `teacher_no_show` (20 minutes past start with no teacher join),',
+        'the student picks `choice` = `reschedule` (with `slot_id`, same teacher, no fee) or `refund`',
+        '(session becomes `refunded`, `refund_state` = `pending`; the money is returned outside the',
+        'platform within 5 working days). The server re-checks the 20-minute rule; it does not trust the button.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                                'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('choice'), 'properties' => array('choice' => array('type' => 'string', 'enum' => array('reschedule', 'refund')), 'slot_id' => array('type' => 'integer'))),
+    ))),
+    'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '403' => $r_403,
+                         '409' => $err_ref('No choice is pending on this session.', array('message' => 'لا خيار ينتظرك في هذه الحصة.',
+                                                                                          'code' => 'teacher_fault_failed')),
+                         '422' => $r_422, '429' => $r_429),
+)),
+
+'/api/v1/student/sessions/{id}/recording' => array('get' => array(
+    'tags' => array('Sessions'),
+    'summary' => 'Recording of a finished session',
+    'description' => 'Guarded: the session\'s student (also `/api/v1/parent/sessions/{id}/recording` for a linked parent, and `/api/v1/teacher/sessions/{id}/recording` for its teacher). Returns `url` (YouTube, Vimeo or Drive, already cleaned), `provider` and `when_text`. Payloads carry `recording_url` pointing here only when a recording exists, and `recording_pending` while the teacher promised one.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                                'schema' => array('type' => 'integer'))),
+    'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '403' => $r_403, '404' => $r_404),
+)),
+
+'/api/v1/parent/sessions/{id}/recording' => array('get' => array(
+    'tags' => array('Parent'),
+    'summary' => 'Recording of a child\'s finished session',
+    'description' => 'Same guard as the student endpoint, for a parent with an active link to the student. `parent/children/{id}` now carries `past_sessions` (id, starts_at, teacher, subject, `attendance` present|absent|null, `has_recording`, `recording_pending`, `recording_url`).',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                                'schema' => array('type' => 'integer'))),
+    'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '403' => $r_403, '404' => $r_404),
+)),
+// TQ-LIVE phase 2/3 — end
+
 '/api/v1/student/sessions/{id}/pay' => array('post' => array(
     'tags' => array('Sessions'),
     'summary' => 'Pay for a confirmed session',
@@ -4212,8 +4288,8 @@ $spec = array(
 
 '/api/v1/student/sessions/{id}/cancel' => array('post' => array(
     'tags' => array('Sessions'),
-    'summary' => 'Cancel before payment',
-    'description' => 'A student may cancel while the session is `requested` or `awaiting_payment`. **After payment they may not** — there is no automatic refund path in this setup, and a button that cancels without refunding leaves the student with neither the session nor the money. Administration handles a paid cancellation as a refund.',
+    'summary' => 'Cancel a booking (refund rule by hours)',
+    'description' => 'A student may cancel while the session is `requested` or `awaiting_payment`. TQ-LIVE D5-b: a **paid single** session cancelled at least `tq_session_refund_hours` (default 24) before start becomes `refunded` with `refund_state` = `pending` — the money is returned outside the platform within 5 working days. Closer than that it is refused (409, teacher time is reserved); the student may still reschedule once if `can_reschedule`. Payloads carry `cancel_refund` = `refund` | `no_refund` | `` to show this before the tap. Pack sessions return to credit until the join window, as before.',
     'security' => $auth,
     'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
                                 'schema' => array('type' => 'integer'))),
@@ -5226,6 +5302,76 @@ $spec = array(
 )),
 // TQ-LIVE — end
 
+// TQ-LIVE phase 2/3 — begin
+'/api/v1/teacher/sessions/{id}/reschedule-options' => array('get' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'Open slots a session can move to',
+    'description' => 'Your own open future slots in the session\'s scope.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                                'schema' => array('type' => 'integer'))),
+    'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '403' => $r_403, '429' => $r_429),
+)),
+
+'/api/v1/teacher/sessions/{id}/reschedule' => array('post' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'Reschedule a session (any time before it starts)',
+    'description' => 'Same rule as the student endpoint without the once/12h limits. The student and linked parents are told the old and new times; price and invoice are unchanged.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                                'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('slot_id'), 'properties' => array('slot_id' => array('type' => 'integer'))),
+    ))),
+    'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '403' => $r_403,
+                         '409' => $err_ref('Slot taken or session not movable.', array('message' => 'سبقك أحد إلى هذا الموعد. اختر غيره.',
+                                                                                    'code' => 'reschedule_failed')),
+                         '422' => $r_422, '429' => $r_429),
+)),
+
+'/api/v1/teacher/sessions/{id}/cancel' => array('post' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'Cancel a session — reason required',
+    'description' => 'A `confirmed` or `awaiting_payment` session that has not started. `reason` is required and shown to the student. A confirmed single session opens the student\'s choice (`student_choice: true`): a replacement slot with you at no fee, or a refund. Pack sessions return to the student\'s credit.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                                'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('reason'), 'properties' => array('reason' => array('type' => 'string', 'maxLength' => 255))),
+    ))),
+    'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '403' => $r_403,
+                         '409' => $err_ref('Not cancellable.', array('message' => 'بدأ موعد هذه الحصة، فلا تلغى الآن.',
+                                                                     'code' => 'session_cancel_failed')),
+                         '422' => $r_422, '429' => $r_429),
+)),
+
+'/api/v1/teacher/sessions/{id}/recording' => array(
+    'get' => array(
+        'tags' => array('Teacher'),
+        'summary' => 'Recording of a finished session',
+        'security' => $auth,
+        'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                                'schema' => array('type' => 'integer'))),
+        'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '403' => $r_403, '404' => $r_404),
+    ),
+    'post' => array(
+        'tags' => array('Teacher'),
+        'summary' => 'Add the recording link, or correct attendance',
+        'description' => 'D4: `recording_url` must be https on YouTube, Vimeo or Google Drive. `recording_later: true` marks it pending (student reads «جاري تجهيز التسجيل»; reminder after 48h, dropped after 7 days). D3: `attendance` (`present`|`absent`) may be corrected within 24h of completion; after that it stands as recorded. Absence never changes money.',
+        'security' => $auth,
+        'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                                'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => false, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'properties' => array('recording_url' => array('type' => 'string'), 'attendance' => array('type' => 'string', 'enum' => array('present', 'absent')), 'recording_later' => array('type' => 'boolean'))),
+    ))),
+        'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '403' => $r_403,
+                             '409' => $err_ref('Not a finished session of yours, or bad link.', array('message' => 'التسجيل يضاف لحصة انتهت.',
+                                                                                                    'code' => 'recording_failed')),
+                             '429' => $r_429),
+    ),
+),
+// TQ-LIVE phase 2/3 — end
+
 '/api/v1/teacher/sessions/{id}/complete' => array('post' => array(
     'tags' => array('Teacher'),
     'summary' => 'Mark a session finished',
@@ -5237,10 +5383,18 @@ $spec = array(
         '',
         '`credited` says whether the ledger entry was actually written. "I ended it" and "the money',
         'arrived" are two pieces of news, and the second is the one the teacher is asking about.',
+        '',
+        'TQ-LIVE (optional body): `attendance` present|absent (prefill from the student\'s join),',
+        '`recording_url` (https YouTube/Vimeo/Drive) or `recording_later: true`. Absence never changes money.',
     )),
     'security' => $auth,
     'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
                                'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => false, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'properties' => array(
+            'attendance' => array('type' => 'string', 'enum' => array('present', 'absent')),
+            'recording_url' => array('type' => 'string'), 'recording_later' => array('type' => 'boolean'))),
+    ))),
     'responses' => array(
         '200' => array('description' => 'Completed', 'content' => array('application/json' => array('example' => array(
             'data' => array('id' => 241, 'status' => 'completed', 'credited' => true),
