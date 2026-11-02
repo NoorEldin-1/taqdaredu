@@ -2945,6 +2945,7 @@ class Taqdar_sessions_model extends CI_Model
                     (int) $row['teacher_id'], (int) $row['id'],
                     $pack ? 'ألغيت حصة باقة' : 'استردت الحصة');
             } catch (Throwable $e) {
+                $this->db->reset_query();
                 log_message('error', 'TQ-SESSION-REVERSE: تعذر عكس حصة #' . (int) $row['id']);
             }
         } else {

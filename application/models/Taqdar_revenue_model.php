@@ -912,7 +912,16 @@ class Taqdar_revenue_model extends CI_Model
         $before = $this->shares_of($sid);
 
         /* ١ — تعكس القيود في المحافظ */
-        $reversed = $this->reverse_plan_sale($sid, $reason !== '' ? $reason : 'إعادة قسمة');
+        /* والعكس ذري: إن تعثر لم يمس قيد، فيقف هنا قبل المحو — ومحو بعد
+           عكس ناقص ثم قسمة جديدة يقيد للمعلم مرتين. */
+        try {
+            $reversed = $this->reverse_plan_sale($sid, $reason !== '' ? $reason : 'إعادة قسمة');
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'TQ-REVENUE resplit reverse #' . $sid . ': ' . $e->getMessage());
+            return array('ok' => false, 'errors' => array(
+                'تعذر عكس القيود القائمة، فلم تغير القسمة. أعد المحاولة بعد قليل.'));
+        }
 
         /* ٢ — تمحى الصفوف المجمدة، وإلا ردت `credit_plan_sale` «قسمت
                من قبل» ولم يحدث شيء. والمحو بعد العكس لا قبله: العكس
