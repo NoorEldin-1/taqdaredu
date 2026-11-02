@@ -116,7 +116,7 @@ check($m->display_state(array('status' => 'completed', 'attendance' => 'present'
       $starts + 7200)['key'] === 'recording_available', 'present + recording');
 check($m->display_state(array('status' => 'completed', 'attendance' => 'absent', 'recording_url' => 'https://youtu.be/x') + $live,
       $starts + 7200)['key'] === 'missed', 'absent wins');
-$keys = array('key', 'label', 'tone', 'button', 'starts_ts', 'deadline_ts');
+$keys = array('key', 'label', 'tone', 'button', 'hint', 'starts_ts', 'deadline_ts');
 check(array_keys($m->display_state($choice, time())) === $keys, 'display_state shape unchanged');
 
 // ---- recording + attendance follow-ups (D3, D4) ---------------------------

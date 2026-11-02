@@ -40,6 +40,10 @@ $tq_confirmed = in_array($tq_lv['status'], array('confirmed', 'live'), true);
         </a>
     <?php endif; ?>
 
+    <?php if (!empty($tq_st['hint'])): ?>
+        <p class="tq-micro" style="margin:0 0 var(--tq-space-xs)"><?php echo html_escape($tq_st['hint']); ?></p>
+    <?php endif; ?>
+
     <?php if ($tq_confirmed && in_array($tq_st['key'], $tq_live_keys, true)): ?>
         <?php if ($tq_lv['can_join']): ?>
             <a class="tq-btn tq-btn--mastery tq-btn--sm tq-btn--block" href="<?php echo $tq_join; ?>"

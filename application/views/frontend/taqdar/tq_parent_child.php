@@ -296,6 +296,12 @@ include 'portal_open.php';
                         $tq_st   = (string) $tq_ss['status'];
                         $tq_skind = $tq_st === 'confirmed' ? 'mastered' : ($tq_st === 'live' ? 'progress' : 'due');
                         $tq_slab = ['requested' => t('بانتظار المعلم'), 'confirmed' => t('مؤكدة'), 'live' => t('جارية الآن')][$tq_st] ?? $tq_st;
+                        /* TQ-LIVE gap 9 — حال العرض المشتقة هي الجواب متى جاءت. */
+                        if (!empty($tq_ss['state']['label'])) {
+                            $tq_slab  = $tq_ss['state']['label'];
+                            $tq_skind = in_array($tq_ss['state']['tone'], ['mastered', 'progress', 'due', 'late'], true)
+                                      ? $tq_ss['state']['tone'] : $tq_skind;
+                        }
                         ?>
                         <li class="tq-row" style="gap:var(--tq-space-m);align-items:flex-start">
                             <span class="tq-icon-box tq-pastel--lilac" style="color:var(--tq-lilac-ink)" aria-hidden="true"><?php echo tq_icon('video'); ?></span>
@@ -324,6 +330,9 @@ include 'portal_open.php';
                                 <span style="display:inline-block;margin-block-start:var(--tq-space-xs)">
                                     <?php echo tq_badge($tq_skind, $tq_slab); ?>
                                 </span>
+                                <?php if (!empty($tq_ss['state']['hint'])): ?>
+                                    <span class="tq-micro" style="display:block"><?php echo html_escape($tq_ss['state']['hint']); ?></span>
+                                <?php endif; ?>
                             </span>
                         </li>
                     <?php endforeach; ?>

@@ -258,6 +258,19 @@ $tq_url  = function ($over = array()) use ($status, $tq_kind) {
                     <?php else: ?>
                         <span style="color:var(--tq-text3)">—</span>
                     <?php endif; ?>
+                    <?php /* TQ-LIVE gap 2 (D2) — الإدارة تعدل رابط الحصة المفتوحة. */ ?>
+                    <?php if (in_array($st, array('confirmed', 'live', 'awaiting_payment'), true)): ?>
+                        <form action="<?php echo site_url('taqdar_admin/session_meet_url'); ?>" method="post"
+                              style="margin:6px 0 0;display:flex;gap:4px;align-items:center">
+                            <?php echo tq_csrf(); ?>
+                            <input type="hidden" name="session_id" value="<?php echo (int) $r['id']; ?>">
+                            <label class="tqa-sr" for="mu-<?php echo (int) $r['id']; ?>"><?php echo t('رابط اللقاء'); ?></label>
+                            <input class="tqa-input tqa-btn--sm" id="mu-<?php echo (int) $r['id']; ?>" type="url" name="meet_url"
+                                   value="<?php echo html_escape($link); ?>" maxlength="500" placeholder="https://"
+                                   style="min-block-size:34px;inline-size:140px">
+                            <button class="tqa-btn tqa-btn--ghost tqa-btn--sm" type="submit"><?php echo t('حفظ'); ?></button>
+                        </form>
+                    <?php endif; ?>
                 </td>
 
                 <td data-label="<?php echo te('إجراء'); ?>">

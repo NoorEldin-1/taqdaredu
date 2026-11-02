@@ -6187,6 +6187,8 @@ class Api_v1 extends CI_Controller
                الحالة: teacher_fault · teacher_no_show · recording · join ·
                pay · retry_pay · ''. والاحكام من `live_extra()` نفسها. */
             'action'            => (string) ($st['button'] ?? ''),
+            /* TQ-LIVE gap 14 — «المعلم لم يدخل بعد» والغرفة مفتوحة. */
+            'teacher_hint'      => (string) ($st['hint'] ?? ''),
             'can_reschedule'    => !empty($r['can_reschedule']),
             'reschedule_block'  => (string) ($r['reschedule_block'] ?? ''),
             'reschedule_count'  => (int) ($r['reschedule_count'] ?? 0),
@@ -9879,12 +9881,64 @@ class Api_v1 extends CI_Controller
             ),
             /* وثمن حصته ونصيبه منها يخرجان هنا كذلك: من يفتح وقتا يسأل
                «بكم تباع ساعتي؟» قبل أن يكتب ساعة. */
+            /* TQ-LIVE gap 1 — المواعيد المفتوحة، لزر «أغلق هذا الموعد». */
+            'open_slots' => array_map(function ($s) {
+                return array('id' => (int) $s['id'], 'starts_at' => tq_api_date($s['starts_at']),
+                             'duration_min' => (int) $s['duration_min'],
+                             'grade_id' => (int) $s['grade_id'], 'subject_id' => (int) $s['subject_id']);
+            }, $sess->open_slots_for($uid)),
             'pricing' => array(
                 'price'   => tq_api_money((int) (isset($pric['price']) ? $pric['price'] : 0)),
                 'percent' => (int) (isset($pric['percent']) ? $pric['percent'] : 0),
                 'share'   => tq_api_money((int) (isset($pric['share']) ? $pric['share'] : 0)),
             ),
         ), '', array(), $h);
+    }
+
+    /* ---- TQ-LIVE gap 1 + 3: إغلاق موعد، ورابط المعلم الثابت ------------- */
+
+    /**
+     * POST /api/v1/teacher/availability/slots/{id}/close — «أغلق هذا الموعد»
+     * (D1). النداء نفسه الذي تناديه شاشة الويب: `close_slot()`.
+     */
+    public function teacher_slot_close($id = 0)
+    {
+        $this->method('POST');
+        $u = $this->require_teacher();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $sess = $this->tq_sessions();
+        if (!$sess->close_slot((int) $u['id'], (int) $id)) {
+            $this->fail(t('تعذر إغلاق الموعد: حجز أو لم يعد مفتوحا.'), 'slot_close_failed', 409);
+        }
+        $this->api->audit('api.sessions.close_slot', (int) $u['id'], array('slot_id' => (int) $id));
+        $this->respond(tq_api_ok(array('id' => (int) $id, 'status' => 'closed'),
+                                 t('أغلق الموعد، ولا يحجزه أحد.')), 200);
+    }
+
+    /**
+     * GET · PUT /api/v1/teacher/settings/meet-url — رابط اللقاء الثابت
+     * (D2-b)، بنداء `teacher_meet_url()` / `save_teacher_meet_url()` نفسه.
+     * الفارغ يمحو الرابط.
+     */
+    public function teacher_meet_url()
+    {
+        $m = $this->method(array('GET', 'PUT', 'POST'));
+        $u = $this->require_teacher();
+        $sess = $this->tq_sessions();
+
+        if ($m !== 'GET') {
+            $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+            $r = $sess->save_teacher_meet_url((int) $u['id'], (string) $this->in('meet_url', ''));
+            if (empty($r['ok'])) $this->fail($this->model_msg($r, t('الرابط غير مقبول.')), 'validation_failed', 422);
+            $this->api->audit('api.sessions.meet_url', (int) $u['id'], array());
+            $this->respond(tq_api_ok(array('meet_url' => (string) $r['url'] !== '' ? (string) $r['url'] : null),
+                                     $this->model_msg($r, t('حفظ رابط لقائك الثابت.'))), 200);
+        }
+
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+        $url = $sess->clean_meet_url($sess->teacher_meet_url((int) $u['id']));
+        $this->read(array('meet_url' => $url !== '' ? $url : null, 'hosts' => $sess->meet_hosts_text()), '', array(), $h);
     }
 
     /* ---- المحفظة: إلغاء طلب سحب -------------------------------------- */

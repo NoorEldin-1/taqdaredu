@@ -911,7 +911,10 @@ class Taqdar_student_model extends CI_Model
         }
 
         /* 4) حصص بالطلب — وقتها من الفترة المحجوزة لا من الحصة نفسها. */
-        foreach ($this->db->select('sl.starts_at, sl.duration_min, ts.status, u.first_name, u.last_name')
+        /* TQ-LIVE gap 9 — وسم الحال من `display_state()` لا من `status` خاما. */
+        $this->load->model('taqdar_sessions_model');
+        $this->taqdar_sessions_model->install_schema();
+        foreach ($this->db->select('ts.*, sl.starts_at, sl.duration_min, u.first_name, u.last_name')
                           ->from('tutoring_sessions ts')
                           ->join('availability_slots sl', 'sl.id = ts.slot_id', 'inner')
                           ->join('users u', 'u.id = ts.teacher_id', 'left')
@@ -927,7 +930,8 @@ class Taqdar_student_model extends CI_Model
                 'cat'   => 'on_demand',
                 'title' => t('حصة') . ($who !== '' ? t(' مع ') . $who : ''),
                 /* نص خام: العزل يقع عند العرض مرة واحدة، فلا يعزل الرقم مرتين */
-                'sub'   => ((int) $r['duration_min']) . t(' دقيقة'),
+                'sub'   => ((int) $r['duration_min']) . t(' دقيقة')
+                         . ' · ' . $this->taqdar_sessions_model->display_state($r, null, 'student')['label'],
                 'href'  => base_url('student/on-demand'),
             );
         }

@@ -106,6 +106,8 @@ class Taqdar_admin extends CI_Controller
            فتخرج الشاشة **فارغة** لا معطلة — وهو أسوأ: يقرأ المسؤول
            «لا حصص بعد» على قاعدة فيها أربعون. */
         $this->taqdar_sessions_model->install_schema();
+        /* TQ-LIVE gap 2 — تنبيه الحصص بلا رابط كسول عند فتح الشاشة. */
+        $this->taqdar_sessions_model->alert_missing_links();
         /* TQ-FOUNDATION — وجدول المسارات كذلك: استعلام الحصص يضم إليه
            ليقرأ اسم المسار، وجدول لم ينشأ بعد يرمي استثناء تبتلعه
            `safe_rows` فتخرج الشاشة فارغة على قاعدة فيها أربعون حصة. */
@@ -160,6 +162,21 @@ class Taqdar_admin extends CI_Controller
 
         $this->session->set_flashdata(!empty($r['ok']) ? 'flash_message' : 'error_message',
             isset($r['msg']) ? $r['msg'] : 'تعذر التأجيل.');
+        redirect(site_url('taqdar_admin/sessions'), 'location', 302);
+    }
+
+    /** TQ-LIVE gap 2 (D2) — الإدارة تعدل رابط لقاء حصة. */
+    public function session_meet_url()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_sessions_model');
+        $r = $this->taqdar_sessions_model->admin_set_meet_url(
+            (int) $this->input->post('session_id'), (string) $this->input->post('meet_url'),
+            (int) $this->session->userdata('user_id'));
+
+        $this->session->set_flashdata(!empty($r['ok']) ? 'flash_message' : 'error_message',
+            isset($r['msg']) ? $r['msg'] : t('تعذر حفظ الرابط.'));
         redirect(site_url('taqdar_admin/sessions'), 'location', 302);
     }
 

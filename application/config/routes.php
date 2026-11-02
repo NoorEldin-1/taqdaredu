@@ -407,6 +407,12 @@ $route['api/v1/teacher/books/(:num)']                          = 'api_v1/teacher
 // حاصلها. وبلا هذه النقطة لا يفتح معلم ساعة واحدة من تطبيقه.
 $route['api/v1/teacher/availability']                          = 'api_v1/teacher_availability';
 
+// TQ-LIVE gap 1 + 3 — إغلاق موعد مفتوح، ورابط اللقاء الثابت للمعلم (D1 · D2-b).
+$route['api/v1/teacher/availability/slots/(:num)/close']       = 'api_v1/teacher_slot_close/$1';
+$route['api/v1/teacher/settings/meet-url']                     = 'api_v1/teacher_meet_url';
+// TQ-LIVE gap 2 — الإدارة تعدل رابط لقاء حصة.
+$route['taqdar_admin/session_meet_url']                        = 'taqdar_admin/session_meet_url';
+
 $route['api/v1/teacher/wallet/payouts/(:num)/cancel']          = 'api_v1/teacher_payout_cancel/$1';
 
 // التصدير وحذف الحساب — حق لكل صاحب حساب لا للطالب وحده، والويب يوجه

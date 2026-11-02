@@ -6800,6 +6800,42 @@ $extra_ops = array(
     ),
 ),
 
+/* TQ-LIVE gap 1 + 3 */
+'/api/v1/teacher/availability/slots/{id}/close' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Close an open slot (D1)',
+    'description' => 'Instant booking means every open slot can be booked without you, so an unbooked slot you cannot keep is closed here before someone books it. Only your own `open` slot with no live session on it closes; the same `close_slot()` the web screen calls. The slot is marked `closed`, not deleted, so the weekly layout does not re-create it. Open slots are listed in `open_slots` of `GET /teacher/availability`.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                                'schema' => array('type' => 'integer'))),
+    'responses' => array('200' => array('description' => 'Closed'), '401' => $r_401, '403' => $r_403,
+                         '409' => $err_ref('Booked, not yours, or no longer open.',
+                             array('message' => 'تعذر إغلاق الموعد: حجز أو لم يعد مفتوحا.', 'code' => 'slot_close_failed')),
+                         '429' => $r_429),
+)),
+
+'/api/v1/teacher/settings/meet-url' => array(
+    'get' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'My fixed meeting link (D2-b)',
+        'description' => 'The default link used for every session that has no link of its own. `null` when none is set.',
+        'security' => $auth,
+        'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '403' => $r_403, '429' => $r_429),
+    ),
+    'put' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'Save or clear my fixed meeting link',
+        'description' => 'An empty `meet_url` clears it. The link must be https on an allowed meeting host; a refusal names the hosts.',
+        'security' => $auth,
+        'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+            'schema' => array('type' => 'object', 'required' => array('meet_url'), 'properties' => array(
+                'meet_url' => array('type' => 'string', 'example' => 'https://meet.google.com/abc-defg-hij'))),
+        ))),
+        'responses' => array('200' => array('description' => 'Saved'), '401' => $r_401, '403' => $r_403,
+                             '422' => $r_422, '429' => $r_429),
+    ),
+),
+
 '/api/v1/teacher/wallet/payouts/{id}/cancel' => array('post' => array(
     'tags' => array('Teacher authoring'),
     'summary' => 'Cancel a payout request',
