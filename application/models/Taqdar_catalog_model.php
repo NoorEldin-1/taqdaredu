@@ -63,6 +63,9 @@ class Taqdar_catalog_model extends CI_Model
                الانواع، لا قائمة ثانية بلا مرشحات. */
             'course'      => array('label' => 'الكورسات',  'one' => 'كورس',   'icon' => 'i-curriculum'),
             'book'        => array('label' => 'الكتب',     'one' => 'كتاب',   'icon' => 'i-book'),
+            /* TQ-GROUP — النوع الخامس: جدول حصص مباشرة يباع مقعدا. ولا يظهر
+               في المرشح ما لم تكن مجموعة منشورة والبيع مفعلا. */
+            'group'       => array('label' => 'مجموعات مباشرة', 'one' => 'مجموعة', 'icon' => 'i-video'),
         );
     }
 
@@ -121,6 +124,7 @@ class Taqdar_catalog_model extends CI_Model
         foreach ($this->paths()        as $r) $out[] = $r;
         foreach ($this->courses()      as $r) $out[] = $r;
         foreach ($this->books()        as $r) $out[] = $r;
+        foreach ($this->groups()       as $r) $out[] = $r;
 
         return $this->items = $out;
     }
@@ -576,6 +580,53 @@ class Taqdar_catalog_model extends CI_Model
                                     'book_kind' => $kind),
                 'text'     => implode(' ', array((string) $r['title'], (string) $r['subject'],
                                                  (string) $r['author'], (string) $r['description'])),
+            ));
+        }
+        return $out;
+    }
+
+    /* ---- المجموعات المباشرة (TQ-GROUP) ----------------------------- */
+
+    /**
+     * المنشورة وحدها وبالمفتاح وحده. والعرض من `summary()`/`offer()` —
+     * السعر بالهللات كما في الكتاب والكورس.
+     */
+    private function groups()
+    {
+        try {
+            $CI = get_instance();
+            $CI->load->model('taqdar_group_model', 'tq_grp_cat');
+            if (!$CI->tq_grp_cat->enabled()) return array();
+            $rows = $CI->tq_grp_cat->published();
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            return array();
+        }
+        $grades = $this->grades();
+        $out    = array();
+        foreach ($rows as $r) {
+            $sm = $CI->tq_grp_cat->summary_of($r);
+            if (!$sm) continue;
+            $gid   = (int) $r['grade_id'];
+            $stats = array(array('i-calendar', tq_count_units((int) $sm['sessions_total'], 'حصة', 'حصتان',
+                                 'حصتين', 'حصص', 'حصة', null, 'obl', true)));
+            $stats[] = array('i-users', $sm['seats_text']);
+            $out[] = $this->shape(array(
+                'kind'       => 'group',
+                'id'         => (int) $r['id'],
+                'title'      => (string) $r['title'],
+                'blurb'      => tqs_excerpt((string) $r['description'], 120),
+                'image'      => (string) $r['image'],
+                'href'       => base_url('group/' . rawurlencode((string) $r['slug'])),
+                'grades'     => $gid > 0 ? array($gid) : array(),
+                'grade_name' => ($gid > 0 && isset($grades[$gid])) ? $grades[$gid] : '',
+                'teacher_id' => (int) $r['teacher_id'],
+                'price'      => (int) $sm['price_halalas'],
+                'date'       => !empty($r['created_at']) ? (int) strtotime((string) $r['created_at']) : 0,
+                'ready'      => $sm['sellable'],
+                'stats'      => $stats,
+                'extra'      => array('sellable' => $sm['sellable'], 'next' => $sm['next_starts_at']),
+                'text'       => (string) $r['title'] . ' ' . (string) $r['description'],
             ));
         }
         return $out;

@@ -455,6 +455,14 @@ if (!function_exists('tqs_cat_card')) {
                 . ($sellable ? t('تفاصيل الكتاب') : ($has ? t('اقرا وحمل') : t('تفاصيل الكتاب')))
                 . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></span>' . "\n";
 
+        } elseif ($it['kind'] === 'group') {
+            /* TQ-GROUP — سعر المقعد للجدول كله، بالهللات من `offer()`. */
+            $h .= '      <p class="ccard__price"><b class="tq-ltr">'
+                . number_format(((int) $it['price']) / 100) . t('</b><span>ر.س</span></p>') . "
+";
+            $h .= '      <span class="ccard__cta">' . t('اعرض الجدول')
+                . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></span>' . "
+";
         } elseif ($it['kind'] === 'course') {
             /* الكورس محتوى الباقة لا سلعة بجوارها: «ضمن الباقات» كما يقرأ
                البرنامج، إلا ما وسم مجانيا فيقرأ مجانا. وبطاقة تقول سعرا
