@@ -10538,7 +10538,7 @@ class Api_v1 extends CI_Controller
         $b = $this->body();
         $r = $this->grp()->set_recording((int) $id, (string) ($b['recording_url'] ?? ''),
                                          array('id' => (int) $u['id'], 'role' => 'teacher'));
-        $this->wrote($r, t('تعذر حفظ التسجيل.'), 'recording_failed', array('id' => (int) $id));
+        $this->wrote($r, 'تعذر حفظ التسجيل.', 'recording_failed', array('id' => (int) $id));
     }
     // TQ-GROUP gap — end
 
