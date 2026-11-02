@@ -10384,28 +10384,21 @@ class Api_v1 extends CI_Controller
     }
 
     /**
-     * PATCH · DELETE /api/v1/teacher/group-sessions/{id}
+     * PATCH /api/v1/teacher/group-sessions/{id}
      *
      * PATCH بـ`starts_at` جديد ومعه `reason` تأجيل يبلغ كل الأعضاء؛ وبلاهما
-     * تعديل العنوان والرابط والمدة. وDELETE لا يلغي: الإلغاء بلا بديل قرار
-     * للإدارة وحدها، فيرد `replacement_required` ويدل على التأجيل.
+     * تعديل العنوان والرابط والمدة. ولا إلغاء من هنا: الإلغاء بلا بديل قرار
+     * للإدارة وحدها من اللوحة.
      */
     public function teacher_group_session($id = 0)
     {
-        $m  = $this->method(array('PATCH', 'POST', 'DELETE'));
+        $this->method(array('PATCH', 'POST'));
         $u  = $this->require_teacher();
         $gs = $this->grp()->session((int) $id);
         if (!$gs) $this->fail('لا حصة بهذا الرقم.', 'not_found', 404);
         $this->teacher_group_row((int) $gs['group_id'], (int) $u['id']);
         $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
         $actor = array('id' => (int) $u['id'], 'role' => 'teacher');
-
-        if ($m === 'DELETE') {
-            $r = $this->grp()->cancel_session((int) $id, (string) $this->in('reason', ''), $actor, false);
-            $code = isset($r['code']) ? (string) $r['code'] : 'cancel_failed';
-            if (empty($r['ok'])) $this->fail($this->model_msg($r, ''), $code, 409);
-            $this->wrote($r, '', 'cancel_failed');
-        }
 
         $b = $this->body();
         if (isset($b['starts_at']) && strtotime((string) $b['starts_at']) !== strtotime((string) $gs['starts_at'])) {

@@ -4260,16 +4260,6 @@ $spec = array(
         'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer'))),
         'responses' => array('200' => array('description' => 'Saved'), '401' => $r_401, '404' => $r_404, '409' => $r_409),
     ),
-    'delete' => array(
-        'tags' => array('Teacher authoring'),
-        'summary' => 'Cancel a session — refused for teachers',
-        'description' => 'Memberships are sold with a schedule, so a session is not dropped without a replacement.'
-                       . ' Teachers always get 409 `replacement_required` and should reschedule instead;'
-                       . ' cancelling without replacement is an admin decision.',
-        'security' => $auth,
-        'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer'))),
-        'responses' => array('409' => $r_409, '401' => $r_401, '404' => $r_404),
-    ),
 ),
 
 '/api/v1/teacher/group-sessions/{id}/complete' => array('post' => array(

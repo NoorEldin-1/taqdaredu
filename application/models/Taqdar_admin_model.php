@@ -1422,6 +1422,15 @@ class Taqdar_admin_model extends CI_Model
         /* TQ-COUPON — قواعد الكود في نموذجه وحده: النسبة من ١ إلى ١٠٠،
            ونوع واحد على الأقل، والكود فريد بعد التسوية (`ramadan` و
            `RAMADAN` كود واحد)، والمئة بالمئة بلا حد لا تمر بالسكوت. */
+        /* TQ-GROUP — الاغلاق لا يمر من حفظ الوحدة: `close_group()` تعكس قيد
+           المعلم وتسجل رد الاعضاء، وتغيير الحالة هنا يتخطاهما. والمغلقة تبقى
+           مغلقة فلا تفقد قيمتها عند الحفظ. */
+        if ($key === 'groups' && isset($data['status'])) {
+            $this->load->model('taqdar_group_model', 'tq_grp_save');
+            $err = Taqdar_group_model::module_status_error($row_now ? $row_now['status'] : null, $data['status']);
+            if ($err !== null) $errors[] = $err;
+        }
+
         if ($key === 'coupons') {
             $this->load->model('taqdar_coupon_model', 'tq_cp_save');
             $cl = $this->tq_cp_save->clean($data, (int) $id);

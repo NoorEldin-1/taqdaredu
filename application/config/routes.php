@@ -756,6 +756,10 @@ $route['book-checkout/(:num)']   = 'taqdar/book_checkout/$1';
 /* TQ-FND-PACK — وشاشة تأكيد شراء باقة حصص تأسيس. */
 $route['foundation-checkout/(:num)'] = 'taqdar/foundation_checkout/$1';
 /* TQ-GROUP — الصفحتان العامتان وشاشة تأكيد الشراء. */
+/* TQ-GROUP — كتابة اللوحة صريحة قبل العرض. */
+$route['taqdar_admin/group_close']           = 'taqdar_admin/group_close';
+$route['taqdar_admin/group_session_cancel']  = 'taqdar_admin/group_session_cancel';
+$route['taqdar_admin/group_refund_resolved'] = 'taqdar_admin/group_refund_resolved';
 $route['groups']                 = 'taqdar/groups_page';
 $route['group/(:any)']           = 'taqdar/group_page/$1';
 $route['group-checkout/(:num)']  = 'taqdar/group_checkout/$1';

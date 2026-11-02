@@ -896,12 +896,15 @@ class Taqdar_group_model extends CI_Model
                 $agg[(int) $r['group_id']][(string) $r['status']] = array((int) $r['n'], (int) $r['s']);
             }
         } catch (Throwable $e) { $this->db->reset_query(); }
-        $refund = array();
+        $audit = array();
         try {
-            foreach ($this->db->select('entity')->where('action', 'group.refund_due')->get('audit_log')->result_array() as $r) {
-                $refund[] = (string) $r['entity'];
-            }
+            $audit = $this->db->select('action, entity, after')
+                              ->where_in('action', array('group.refund_due', 'group.refund_resolved'))
+                              ->order_by('id', 'ASC')->get('audit_log')->result_array();
         } catch (Throwable $e) { $this->db->reset_query(); }
+        $refund = self::refund_open($audit);
+        $logged = 0;
+        foreach ($refund as $list) $logged += count($list);
 
         $out = array();
         foreach ($groups as $g) {
@@ -912,12 +915,68 @@ class Taqdar_group_model extends CI_Model
             $sum['members']  = count($this->members_of((int) $g['id']));
             $sum['pending']  = isset($a['pending']) ? $a['pending'][0] : 0;
             $sum['gross']    = (isset($a['active']) ? $a['active'][1] : 0) + (isset($a['expired']) ? $a['expired'][1] : 0);
-            $sum['refund_due'] = 0;
-            if ($g['status'] === 'closed' && isset($a['cancelled'])) $sum['refund_due'] = $a['cancelled'][0];
+            /* الرد المستحق من سجل `group.refund_due` لا من عد الملغى: عضوية
+               سقطت بلا دفع، او مجموعة اغلقت بعد ان بدأت حصصها، ليست ردا. */
+            $open = isset($refund[(int) $g['id']]) ? $refund[(int) $g['id']] : array();
+            $sum['refund_due']   = count($open);
+            $sum['refund_items'] = $open;
+            $sum['sessions']     = $this->sessions_of((int) $g['id']);
             $sum['blockers'] = $this->delete_blockers((int) $g['id']);
             $out[] = $sum;
         }
-        return array('rows' => $out, 'refund_logged' => count($refund));
+        return array('rows' => $out, 'refund_logged' => $logged);
+    }
+
+    /**
+     * الردود المستحقة التي لم تسجل بعد انها ردت، لكل مجموعة.
+     * @param array $rows صفوف audit_log (action · entity · after) بترتيب وقوعها
+     * @return array group_id => [subscription_id => price بالهللات]
+     */
+    public static function refund_open(array $rows)
+    {
+        $due = array(); $done = array();
+        foreach ($rows as $r) {
+            if (!preg_match('/^subscriptions#(\d+)$/', (string) $r['entity'], $m)) continue;
+            $sid   = (int) $m[1];
+            $after = json_decode((string) $r['after'], true);
+            if ($r['action'] === 'group.refund_resolved') { $done[$sid] = true; continue; }
+            if ($r['action'] !== 'group.refund_due' || empty($after['group_id'])) continue;
+            $due[$sid] = array((int) $after['group_id'], (int) ($after['price'] ?? 0));
+        }
+        $out = array();
+        foreach ($due as $sid => $d) {
+            if (isset($done[$sid])) continue;
+            $out[$d[0]][$sid] = $d[1];
+        }
+        return $out;
+    }
+
+    /** يسجل ان المسؤول رد مبلغ عضوية خارج المنصة — فيخرج من «رد مستحق». */
+    public function resolve_refund($sub_id, $note)
+    {
+        $sub = $this->db->where('id', (int) $sub_id)->where('group_id >', 0)->get('subscriptions')->row_array();
+        if (!$sub) return array('ok' => false, 'errors' => array(t('لا عضوية مجموعة بهذا الرقم.')));
+        $open = self::refund_open($this->db->select('action, entity, after')
+            ->where_in('action', array('group.refund_due', 'group.refund_resolved'))
+            ->where('entity', 'subscriptions#' . (int) $sub_id)->order_by('id', 'ASC')
+            ->get('audit_log')->result_array());
+        if (empty($open[(int) $sub['group_id']][(int) $sub_id])) {
+            return array('ok' => false, 'errors' => array(t('لا رد مستحق مفتوح لهذه العضوية.')));
+        }
+        $this->audit('group.refund_resolved', 'subscriptions#' . (int) $sub_id, null,
+                     array('group_id' => (int) $sub['group_id'], 'note' => mb_substr(trim((string) $note), 0, 255)));
+        return array('ok' => true, 'message' => t('سجل ان المبلغ رد خارج المنصة.'));
+    }
+
+    /**
+     * حارس الوحدة الموصوفة: الانتقال الى `closed` يمر بـ`close_group()` وحده
+     * (عكس القيود وتسجيل الرد)، فحفظ الوحدة يرده. والمغلقة تبقى مغلقة.
+     * @return string|null نص الرفض، او null
+     */
+    public static function module_status_error($old_status, $new_status)
+    {
+        if ((string) $new_status !== 'closed' || (string) $old_status === 'closed') return null;
+        return t('لا تغلق المجموعة من هنا — استعمل زر «أغلق المجموعة» في شاشة المجموعات المباشرة: به تعكس قيود المعلم ويسجل رد الاعضاء.');
     }
 
     /** المراجعة: `review` ← `published`، ويبلغ صاحبها. */
@@ -958,10 +1017,12 @@ class Taqdar_group_model extends CI_Model
      *
      * @return array ok · refunded (عدد) · voided (عدد المعلق) · before_start
      */
-    public function close_group($id)
+    public function close_group($id, $reason = '')
     {
         $g = $this->get($id);
         if (!$g) return array('ok' => false, 'errors' => array(t('لا مجموعة بهذا الرقم.')));
+        if ($g['status'] === 'closed') return array('ok' => false, 'errors' => array(t('المجموعة مغلقة من قبل.')));
+        $reason = trim((string) $reason);
 
         $this->db->where('id', (int) $id)->update(self::T_GROUPS, array('status' => 'closed'));
 
@@ -1014,7 +1075,8 @@ class Taqdar_group_model extends CI_Model
             }
         }
         $this->audit('group.close', self::T_GROUPS . '#' . (int) $id, $g,
-                     array('before_start' => $before, 'refunded' => $refunded, 'voided' => $voided));
+                     array('before_start' => $before, 'refunded' => $refunded, 'voided' => $voided,
+                           'reason' => mb_substr($reason, 0, 255)));
         return array('ok' => true, 'refunded' => $refunded, 'voided' => $voided, 'before_start' => $before);
     }
 
