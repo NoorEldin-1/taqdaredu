@@ -8685,9 +8685,9 @@ class Api_v1 extends CI_Controller
         }
 
         $kind = (string) ($b['kind'] ?? 'plan');
-        if (!in_array($kind, array('plan', 'course', 'book', 'foundation'), true)) {
+        if (!in_array($kind, array('plan', 'course', 'book', 'foundation', 'group'), true)) {
             $this->fail('نوع الشراء غير معروف.', 'validation_failed', 422,
-                        array('kind' => array(t('القيم المقبولة: plan · course · book · foundation'))));
+                        array('kind' => array(t('القيم المقبولة: plan · course · book · foundation · group'))));
         }
 
         $this->load->model('taqdar_billing_model', 'tq_bill');
@@ -8711,6 +8711,9 @@ class Api_v1 extends CI_Controller
                هو من يدفع في أكثر الأسر: باب بلا باقات يعني أنه يشتري
                لابنه حصة حصة بمهلة تسقط قبل أن يفتح شاشته. */
             $r = $this->tq_bill->subscribe_foundation_pack($child, (int) ($b['pack_id'] ?? 0), $method, (string) ($b['coupon'] ?? ''));
+        } elseif ($kind === 'group') {
+            /* TQ-GROUP — مقعد لابنه، والصف باسم الابن والدافع للسجل. */
+            $r = $this->tq_bill->subscribe_group($child, (int) ($b['group_id'] ?? 0), (string) ($b['coupon'] ?? ''), $pid, $method);
         } else {
             /* TQ-CYCLE-BUY — والدورة معامل: باب بلا دورة يعني أن ولي
                الأمر لا يشتري الشهري أبدا مهما عرضته عليه صفحة الباقات. */
@@ -10116,6 +10119,16 @@ class Api_v1 extends CI_Controller
             $this->load->model('taqdar_book_model', 'tq_book');
             foreach ($sells ? (array) $this->tq_book->offers(true) : array() as $id => $o) $book_offers[] = $offer_row($id, $o);
         } catch (Throwable $e) { $this->db->reset_query(); $book_offers = array(); }
+        /* TQ-GROUP — مقاعد المجموعات المباشرة، بالحارس نفسه (`$sells`). */
+        $group_offers = array();
+        try {
+            if ($sells && $this->grp()->enabled()) {
+                foreach ($this->grp()->published() as $g) {
+                    $sm = $this->grp()->summary_of($g);
+                    if ($sm && $sm['sellable']) $group_offers[] = $this->group_out($sm, true);
+                }
+            }
+        } catch (Throwable $e) { $this->db->reset_query(); $group_offers = array(); }
 
         $this->read(array(
             'children'      => $kids,
@@ -10123,6 +10136,7 @@ class Api_v1 extends CI_Controller
             'foundation_packs' => $packs,
             'course_offers' => $course_offers,
             'book_offers'   => $book_offers,
+            'group_offers'  => $group_offers,
             'due_invoices'  => $due,
             'card_ready'    => $card,
             'pay_methods'   => $pol['methods'],
@@ -10131,5 +10145,301 @@ class Api_v1 extends CI_Controller
         ), '', array(
             'note' => t('الاشتراك يفتح في حساب ابنك هو، والفاتورة تصدر باسمه.'),
         ), $h);
+    }
+
+    /* ================================================================
+       TQ-GROUP — المجموعات المباشرة
+       ----------------------------------------------------------------
+       لا قاعدة عمل هنا: العرض والمقاعد والدخول من `Taqdar_group_model`،
+       والشراء من `subscribe_group()` عبر مسار الشراء الواحد `buy()` —
+       وهو الذي يحرس `policy()['digital']`، فلا يشترى مقعد من إصدار iOS
+       (D8). والعروض نفسها تخفى هناك: ما لا يباع لا يعرض.
+       ================================================================ */
+
+    private function grp()
+    {
+        $this->load->model('taqdar_group_model', 'tq_grp');
+        $this->tq_grp->ensure_schema();
+        return $this->tq_grp;
+    }
+
+    /** الشكل الواحد لمجموعة في الواجهة — من `summary()`، والمال بـ`tq_api_money()`. */
+    private function group_out($sum, $digital)
+    {
+        $o = $sum;
+        $o['price'] = tq_api_money((int) $sum['price_halalas']);
+        unset($o['price_halalas']);
+        $o['enroll_until']    = $sum['enroll_until'] ? tq_api_date($sum['enroll_until']) : null;
+        $o['first_starts_at'] = $sum['first_starts_at'] ? tq_api_date($sum['first_starts_at']) : null;
+        $o['next_starts_at']  = $sum['next_starts_at'] ? tq_api_date($sum['next_starts_at']) : null;
+        /* لا عرض شراء من إصدار لا يبيع — والسبب مفتاح `app` كما في الكورس. */
+        if (!$digital && $o['sellable']) {
+            $o['sellable'] = false;
+            $o['reason']   = 'app';
+            $o['why']      = t('الشراء غير متاح من هذا الإصدار من التطبيق.');
+            $o['price']    = null;
+        }
+        return $o;
+    }
+
+    /** حصص المجموعة بحالها لهذا المستخدم — بلا رابط اللقاء أبدا. */
+    private function group_sessions_out($group_id, $uid, $actor)
+    {
+        $out = array();
+        foreach ($this->grp()->sessions_of((int) $group_id) as $s) {
+            $d = $this->grp()->display_state($s, $uid, $actor);
+            $out[] = array(
+                'id'            => (int) $s['id'],
+                'title'         => (string) $s['title'],
+                'starts_at'     => tq_api_date($s['starts_at']),
+                'duration_min'  => (int) $s['duration_min'],
+                'status'        => (string) $s['status'],
+                'state'         => $d['state'],
+                'label'         => $d['label'],
+                'tone'          => $d['tone'],
+                'note'          => $d['note'],
+                'can_join'      => (bool) $d['can_join'],
+                'can_complete'  => (bool) $d['can_complete'],
+                'opens_at'      => $d['opens_ts'] ? tq_api_date(date('Y-m-d H:i:s', $d['opens_ts'])) : null,
+                'recording_url' => $d['state'] === 'recording_available' ? (string) $s['recording_url'] : null,
+                'has_meet_url'  => trim((string) $s['meet_url']) !== '',
+                'rescheduled_from' => !empty($s['rescheduled_from_at']) ? tq_api_date($s['rescheduled_from_at']) : null,
+            );
+        }
+        return $out;
+    }
+
+    /** GET /api/v1/student/groups — مجموعاتي، والمعروض للشراء (فارغ حيث لا يبيع الإصدار). */
+    public function student_groups()
+    {
+        $this->method('GET');
+        $u   = $this->require_student();
+        $h   = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+        $uid = (int) $u['id'];
+        $on  = $this->grp()->enabled();
+        $dig = (bool) $this->pay_policy()['digital'];
+
+        $mine = array();
+        $ids  = array();
+        foreach ($on ? $this->grp()->groups_of_student($uid) : array() as $g) {
+            $o = $this->group_out($this->grp()->summary_of($g, $uid), $dig);
+            $o['sessions'] = $this->group_sessions_out((int) $g['id'], $uid, 'student');
+            $mine[] = $o;
+            $ids[(int) $g['id']] = 1;
+        }
+        $offers = array();
+        if ($on && $dig) {
+            foreach ($this->grp()->published() as $g) {
+                if (isset($ids[(int) $g['id']])) continue;
+                $s = $this->grp()->summary_of($g, $uid);
+                if ($s && $s['sellable']) $offers[] = $this->group_out($s, $dig);
+            }
+        }
+        $this->read(array('enabled' => $on, 'purchases_enabled' => $dig, 'mine' => $mine, 'offers' => $offers,
+                          'pay_methods' => $this->pay_policy()['methods']), '', array(), $h);
+    }
+
+    /** GET /api/v1/student/groups/{id} — المجموعة بجدولها وحالها. */
+    public function student_group($id = 0)
+    {
+        $this->method('GET');
+        $u   = $this->require_student();
+        $h   = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+        $uid = (int) $u['id'];
+        $g   = $this->grp()->enabled() ? $this->grp()->get((int) $id) : null;
+        if (!$g || !in_array($g['status'], array('published', 'closed'), true)) {
+            if (!$g || !$this->grp()->has_group($uid, (int) $g['id'])) $this->fail('لا مجموعة بهذا الرقم.', 'not_found', 404);
+        }
+        $o = $this->group_out($this->grp()->summary_of($g, $uid), (bool) $this->pay_policy()['digital']);
+        $o['member']   = $this->grp()->has_group($uid, (int) $g['id']);
+        $o['sessions'] = $this->group_sessions_out((int) $g['id'], $uid, 'student');
+        $this->read($o, '', array(), $h);
+    }
+
+    /** POST /api/v1/student/buy-group — مسار الشراء الواحد، والحارس `buy()`. */
+    public function buy_group()
+    {
+        $this->method('POST');
+        $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+        if (!$this->grp()->enabled()) $this->fail('بيع المجموعات المباشرة غير مفعل.', 'not_sellable', 409);
+
+        $b = $this->body();
+        $errors = tq_api_validate($b, array('group_id' => 'required|int'));
+        if ($errors) $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
+
+        $this->buy(function ($uid, $method) use ($b) {
+            $this->load->model('taqdar_billing_model', 'tq_bill');
+            return $this->tq_bill->subscribe_group($uid, (int) $b['group_id'], (string) ($b['coupon'] ?? ''), 0, $method);
+        }, 'api.buy.group', 'صدرت فاتورتك. حول قيمتها وتفعل عضويتك بعد التحقق من الحوالة.');
+    }
+
+    /** GET /api/v1/student/group-sessions/{id}/join — يسجل الحضور ويرد الرابط. */
+    public function group_session_join($id = 0)
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+        $r = $this->grp()->record_join((int) $id, (int) $u['id'], 'student');
+        if (empty($r['ok'])) $this->fail($this->model_msg($r, t('لا يفتح رابط هذه الحصة الآن.')), 'session_not_joinable', 409);
+        $this->respond(tq_api_ok(array('url' => $r['url']), ''), 200);
+    }
+
+    /** GET /api/v1/student/groups/{id}/ics — الجدول كله، أو `?session=` حصة واحدة. */
+    public function group_ics($id = 0)
+    {
+        $this->method('GET');
+        $u   = $this->require_student();
+        $gid = (int) $id;
+        $g   = $this->grp()->get($gid);
+        if (!$g || !$this->grp()->has_group((int) $u['id'], $gid)) $this->fail('لا مجموعة بهذا الرقم في حسابك.', 'not_found', 404);
+        $rows = $this->grp()->sessions_of($gid);
+        $one  = (int) $this->input->get('session');
+        if ($one > 0) $rows = array_values(array_filter($rows, function ($s) use ($one) { return (int) $s['id'] === $one; }));
+        if (!$rows) $this->fail('لا حصص في هذا الجدول بعد.', 'not_found', 404);
+        $this->output->set_status_header(200)
+             ->set_content_type('text/calendar; charset=utf-8')
+             ->set_header('Content-Disposition: attachment; filename="taqdar-group-' . $gid . '.ics"')
+             ->set_output(Taqdar_group_model::ics_schedule($g, $rows));
+    }
+
+    /* ---- المعلم: التأليف ------------------------------------------ */
+
+    private function teacher_group_row($id, $uid)
+    {
+        $g = $this->grp()->get((int) $id);
+        if (!$g || (int) $g['teacher_id'] !== (int) $uid) $this->fail('لا مجموعة بهذا الرقم في نطاقك.', 'not_found', 404);
+        return $g;
+    }
+
+    /** الحقول التي يكتبها المعلم — `save_group()` تقرر الباقي (النسبة قرار إدارة). */
+    private function group_input()
+    {
+        $b = $this->body();
+        $data = array();
+        foreach (array('title', 'description', 'grade_id', 'subject_id', 'capacity', 'access_days',
+                       'enroll_until', 'price', 'status', 'slug') as $k) {
+            if (array_key_exists($k, $b)) $data[$k] = $b[$k];
+        }
+        return $data;
+    }
+
+    /** GET · POST /api/v1/teacher/groups — مجموعاتي، وإنشاء مجموعة. */
+    public function teacher_groups()
+    {
+        $m = $this->method(array('GET', 'POST'));
+        $u = $this->require_teacher();
+        if ($m === 'POST') {
+            $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+            $r = $this->grp()->save_group($this->group_input(), (int) $u['id'], 'teacher');
+            $this->api->audit('api.group.save', (int) $u['id'], array('group_id' => (int) ($r['id'] ?? 0)));
+            $this->wrote($r, t('تعذر حفظ المجموعة.'), 'save_failed', null, 201);
+        }
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+        $out = array();
+        foreach ($this->grp()->for_teacher((int) $u['id']) as $g) {
+            $o = $this->group_out($this->grp()->summary_of($g), true);
+            $o['members'] = count($this->grp()->members_of((int) $g['id']));
+            $out[] = $o;
+        }
+        $this->read(array('enabled' => $this->grp()->enabled(), 'groups' => $out), '', array(), $h);
+    }
+
+    /** GET · PATCH /api/v1/teacher/groups/{id} */
+    public function teacher_group($id = 0)
+    {
+        $m = $this->method(array('GET', 'PATCH', 'POST'));
+        $u = $this->require_teacher();
+        $g = $this->teacher_group_row($id, (int) $u['id']);
+        if ($m !== 'GET') {
+            $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+            $r = $this->grp()->save_group(array('id' => (int) $g['id']) + $this->group_input(), (int) $u['id'], 'teacher');
+            $this->api->audit('api.group.save', (int) $u['id'], array('group_id' => (int) $g['id']));
+            $this->wrote($r, t('تعذر حفظ المجموعة.'), 'save_failed');
+        }
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+        $o = $this->group_out($this->grp()->summary_of($g), true);
+        $o['sessions'] = $this->group_sessions_out((int) $g['id'], (int) $u['id'], 'teacher');
+        $o['members']  = array_map(function ($mm) {
+            return array('id' => (int) $mm['user_id'], 'name' => (string) $mm['name']);
+        }, $this->grp()->members_of((int) $g['id']));
+        $o['delete_blockers'] = $this->grp()->delete_blockers((int) $g['id']);
+        $this->read($o, '', array(), $h);
+    }
+
+    /** POST /api/v1/teacher/groups/{id}/sessions — حصة جديدة في الجدول. */
+    public function teacher_group_sessions($id = 0)
+    {
+        $this->method('POST');
+        $u = $this->require_teacher();
+        $g = $this->teacher_group_row($id, (int) $u['id']);
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+        $b = $this->body();
+        $data = array();
+        foreach (array('title', 'starts_at', 'duration_min', 'meet_url') as $k) {
+            if (array_key_exists($k, $b)) $data[$k] = $b[$k];
+        }
+        $r = $this->grp()->save_session((int) $g['id'], $data, array('id' => (int) $u['id'], 'role' => 'teacher'));
+        $this->wrote($r, t('تعذر حفظ الحصة.'), 'save_failed', null, 201);
+    }
+
+    /**
+     * PATCH · DELETE /api/v1/teacher/group-sessions/{id}
+     *
+     * PATCH بـ`starts_at` جديد ومعه `reason` تأجيل يبلغ كل الأعضاء؛ وبلاهما
+     * تعديل العنوان والرابط والمدة. وDELETE لا يلغي: الإلغاء بلا بديل قرار
+     * للإدارة وحدها، فيرد `replacement_required` ويدل على التأجيل.
+     */
+    public function teacher_group_session($id = 0)
+    {
+        $m  = $this->method(array('PATCH', 'POST', 'DELETE'));
+        $u  = $this->require_teacher();
+        $gs = $this->grp()->session((int) $id);
+        if (!$gs) $this->fail('لا حصة بهذا الرقم.', 'not_found', 404);
+        $this->teacher_group_row((int) $gs['group_id'], (int) $u['id']);
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+        $actor = array('id' => (int) $u['id'], 'role' => 'teacher');
+
+        if ($m === 'DELETE') {
+            $r = $this->grp()->cancel_session((int) $id, (string) $this->in('reason', ''), $actor, false);
+            $code = isset($r['code']) ? (string) $r['code'] : 'cancel_failed';
+            if (empty($r['ok'])) $this->fail($this->model_msg($r, ''), $code, 409);
+            $this->wrote($r, '', 'cancel_failed');
+        }
+
+        $b = $this->body();
+        if (isset($b['starts_at']) && strtotime((string) $b['starts_at']) !== strtotime((string) $gs['starts_at'])) {
+            $r = $this->grp()->reschedule_session((int) $id, (string) $b['starts_at'], (string) ($b['reason'] ?? ''), $actor);
+            $this->api->audit('api.group_session.reschedule', (int) $u['id'], array('session_id' => (int) $id));
+            $this->wrote($r, t('تعذر تأجيل الحصة.'), 'reschedule_failed', array('id' => (int) $id));
+        }
+        $data = array('id' => (int) $id);
+        foreach (array('title', 'duration_min', 'meet_url') as $k) {
+            if (array_key_exists($k, $b)) $data[$k] = $b[$k];
+        }
+        $r = $this->grp()->save_session((int) $gs['group_id'], $data, $actor);
+        $this->wrote($r, t('تعذر حفظ الحصة.'), 'save_failed');
+    }
+
+    /** POST /api/v1/teacher/group-sessions/{id}/complete — الحضور والتسجيل. */
+    public function teacher_group_session_complete($id = 0)
+    {
+        $this->method('POST');
+        $u  = $this->require_teacher();
+        $gs = $this->grp()->session((int) $id);
+        if (!$gs) $this->fail('لا حصة بهذا الرقم.', 'not_found', 404);
+        $this->teacher_group_row((int) $gs['group_id'], (int) $u['id']);
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+        $b   = $this->body();
+        $att = array();
+        foreach ((array) ($b['attendance'] ?? array()) as $k => $v) {
+            /* الشكلان: خريطة `{id: state}` أو قائمة `[{student_id, attendance}]`. */
+            if (is_array($v)) { $k = (int) ($v['student_id'] ?? 0); $v = (string) ($v['attendance'] ?? ''); }
+            if (in_array($v, array('present', 'absent'), true) && (int) $k > 0) $att[(int) $k] = $v;
+        }
+        $r = $this->grp()->complete_session((int) $id, $att, (string) ($b['recording_url'] ?? ''),
+                                            tq_api_bool($b['recording_pending'] ?? false),
+                                            array('id' => (int) $u['id'], 'role' => 'teacher'));
+        $this->wrote($r, t('تعذر إعلان انتهاء الحصة.'), 'complete_failed');
     }
 }
