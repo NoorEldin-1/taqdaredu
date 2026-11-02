@@ -83,7 +83,10 @@ $tq_confirmed = in_array($tq_lv['status'], array('confirmed', 'live'), true);
     $tq_opts = null;
     $tq_need_opts = !empty($tq_lv['can_reschedule']) || in_array($tq_btn, array('teacher_fault', 'teacher_no_show'), true);
     if ($tq_need_opts) {
-        $tq_opts = $this->taqdar_sessions_model->reschedule_options($tq_sid, $tq_lr, (int) $this->session->userdata('user_id'));
+        /* `$this` في القالب هو المحمل، ولا يرى نموذجا حمل بعد ضم القالب — فالنسخة نفسها. */
+        $tq_ci = get_instance();
+        $tq_ci->load->model('taqdar_sessions_model');
+        $tq_opts = $tq_ci->taqdar_sessions_model->reschedule_options($tq_sid, $tq_lr, (int) $tq_ci->session->userdata('user_id'));
     }
     $tq_slot_select = function ($id) use ($tq_opts) {
         $h = '<label class="tq-sr" for="' . $id . '">' . t('الموعد الجديد') . '</label>'

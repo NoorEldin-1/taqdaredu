@@ -1594,7 +1594,7 @@ return array(
     'فيميو' => 'Vimeo',
     'فيه تعديل لم يحفظ' => 'Unsaved changes',
     'قابلة للحجز في الأيام القادمة' => 'bookable over the coming days',
-    'قادمة' => '',
+    'قادمة' => 'upcoming',
     'قاعدة الانتقال إلى الدرس التالي' => 'The rule for moving to the next lesson',
     'قالب الإشعارات — يفحص ما يخرج فعلا' => 'The notification template — it tests what actually goes out',
     'قالب جديد</a>' => 'New template</a>',

@@ -111,7 +111,7 @@ $d = $m->display_state($choice, $starts - 3600, 'student');
 check($d['key'] === 'cancelled' && $d['button'] === 'teacher_fault', 'teacher fault: student picks');
 check($m->display_state($choice, $starts - 3600, 'teacher')['button'] === '', 'teacher fault: no button for the teacher');
 $d = $m->display_state(array('status' => 'refunded', 'refund_state' => 'pending') + $live, time(), 'student');
-check($d['key'] === 'cancelled' && strpos($d['label'], '5') !== false, 'refund pending says five working days');
+check($d['key'] === 'cancelled' && strpos($d['hint'], '5') !== false && mb_strlen($d['label']) < 25, 'refund pending: short badge, five working days in the hint');
 check($m->display_state(array('status' => 'completed', 'attendance' => 'present', 'recording_url' => 'https://youtu.be/x') + $live,
       $starts + 7200)['key'] === 'recording_available', 'present + recording');
 check($m->display_state(array('status' => 'completed', 'attendance' => 'absent', 'recording_url' => 'https://youtu.be/x') + $live,

@@ -315,7 +315,7 @@ $tq_url  = function ($over = array()) use ($status, $tq_kind) {
 
                     <?php /* TQ-LIVE (§2.2) — تأجيل إداري: مواعيد المعلم نفسه في النطاق نفسه. */ ?>
                     <?php if (in_array($st, array('confirmed', 'awaiting_payment'), true) && $when > time()):
-                        $opts = $this->taqdar_sessions_model->reschedule_options((int) $r['id'], 'admin'); ?>
+                        $opts = get_instance()->taqdar_sessions_model->reschedule_options((int) $r['id'], 'admin'); ?>
                         <?php if ($opts): ?>
                             <form action="<?php echo site_url('taqdar_admin/session_reschedule'); ?>" method="post"
                                   style="margin:6px 0 0;display:flex;gap:6px;align-items:center">

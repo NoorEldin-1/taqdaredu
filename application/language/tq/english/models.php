@@ -200,7 +200,6 @@ return array(
     'ألغيت حصة باقة' => '',
     'ألغيت حصتك. يرد خلال ٥ أيام عمل خارج المنصة.' => 'Your session was cancelled. Refunded within 5 business days outside the platform.',
     'ألغيت واسترد مبلغها' => 'Cancelled and refunded',
-    'ألغيت — يرد مبلغها خلال 5 أيام عمل خارج المنصة' => 'Cancelled — its amount is refunded within 5 business days outside the platform',
     'أمهل قليلا قبل طلب رمز جديد.' => 'Wait a little before requesting a new code.',
     'أنت دون الخامسة عشرة، فالرمز يذهب إلى ولي أمرك —' => 'You are under fifteen, so the code goes to your parent —',
     'أندرويد' => 'Android',
@@ -345,7 +344,6 @@ return array(
     'اطلع على الباقة' => 'See the plan',
     'اعتذر المعلم' => 'The teacher declined',
     'اعتذر المعلم #____ عن الحصة #____ ____ — السبب: ____' => 'Teacher #____ apologised for session #____ ____ — reason: ____',
-    'اعتذر المعلم — اختر موعدا بديلا أو الاسترداد' => 'The teacher cancelled — choose a replacement time or a refund',
     'اعتذر عن الطلب، وعاد الموعد متاحا.' => 'The request was declined, and the slot is available again.',
     'اعتماد حساب المعلم · ربط ولي الأمر · تنبيهات الدخول' => 'Teacher account approval · guardian link · sign-in alerts',
     'اعتماده بلا «معرف حساب الأعمال».' => 'approving it without a "Business account id".',
@@ -2567,4 +2565,6 @@ return array(
     '— ولا يذكر' => '— and does not mention',
     '— ولا يستعمل مثله في التشغيل الحقيقي، فالربط يسكت بعده بلا خطأ يظهر.' => '— never use one like it in production: the connection goes silent afterwards with no visible error.',
     '— وهذا بعينه ما يفشل فحص DMARC ويرسلها إلى المهملات.' => '— and that is exactly what fails the DMARC check and sends it to spam.',
+    'ألغيت — يرد مبلغها' => 'Cancelled — refund due',
+    'يرد المبلغ خلال 5 أيام عمل خارج المنصة.' => 'The amount is refunded within 5 business days, outside the platform.',
 );

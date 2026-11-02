@@ -72,14 +72,14 @@ include 'portal_open.php';
                         $tq_d = $tq_ci->tq_grp->display_state($tq_s, $tq_uid, 'student');
                     ?>
                         <tr data-tq-now="<?php echo time(); ?>">
-                            <td data-label="<?php echo te('الموعد (توقيت مكة)'); ?>">
+                            <td data-label="<?php echo te('الموعد (توقيت مكة)'); ?>"><?php /* الخلية بطاقة دون ٦٤٠: محتواها وعاء واحد يلتف، لا قطع يتجاور فيخرج عن الشاشة */ ?><div class="tq-cellbox">
                                 <span class="tq-ltr"><?php echo html_escape(date('Y-m-d H:i', strtotime($tq_s['starts_at']))); ?></span>
                                 <?php /* TQ-GROUP gap D9 — توقيت جهازك والعد التنازلي (آلية الحصص الفردية: data-tq-now/starts/local) */ ?>
                                 <time class="tq-micro" style="display:block" data-tq-local="<?php echo (int) $tq_d['starts_ts']; ?>"></time>
                                 <span class="tq-micro" style="display:block"><?php echo (int) $tq_s['duration_min']; ?> <?php echo t('دقيقة'); ?></span>
-                            </td>
+                            </div></td>
                             <td data-label="<?php echo te('الحصة'); ?>"><?php echo html_escape(trim((string) $tq_s['title']) !== '' ? $tq_s['title'] : '—'); ?></td>
-                            <td data-label="<?php echo te('الحالة'); ?>">
+                            <td data-label="<?php echo te('الحالة'); ?>"><?php /* الخلية بطاقة دون ٦٤٠: محتواها وعاء واحد يلتف، لا قطع يتجاور فيخرج عن الشاشة */ ?><div class="tq-cellbox">
                                 <?php echo tq_badge(isset($tq_tone[$tq_d['tone']]) ? $tq_tone[$tq_d['tone']] : 'idle', $tq_d['label']); ?>
                                 <?php if ($tq_d['note'] !== ''): ?>
                                     <span class="tq-micro" style="display:block"><?php echo html_escape($tq_d['note']); ?></span>
@@ -91,8 +91,8 @@ include 'portal_open.php';
                                         <?php echo t('يفتح بعد'); ?> <strong data-tq-starts="<?php echo (int) $tq_d['opens_ts']; ?>"></strong>
                                     </span>
                                 <?php endif; ?>
-                            </td>
-                            <td data-label="<?php echo te('إجراءات'); ?>">
+                            </div></td>
+                            <td data-label="<?php echo te('إجراءات'); ?>"><?php /* الخلية بطاقة دون ٦٤٠: محتواها وعاء واحد يلتف، لا قطع يتجاور فيخرج عن الشاشة */ ?><div class="tq-cellbox tq-cellbox--acts">
                                 <?php if ($tq_d['can_join']): ?>
                                     <a class="tq-btn tq-btn--primary tq-btn--sm" href="<?php echo base_url('student/group-sessions/' . (int) $tq_s['id'] . '/join'); ?>"><?php echo t('ادخل الحصة'); ?></a>
                                 <?php elseif ($tq_d['state'] === 'recording_available'): ?>
@@ -101,7 +101,7 @@ include 'portal_open.php';
                                     <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/groups/' . (int) $tq_g['id'] . '/ics?session=' . (int) $tq_s['id']); ?>"><?php echo t('أضف إلى التقويم'); ?></a>
                                     <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo html_escape(Taqdar_group_model::google_calendar_url($tq_g, $tq_s)); ?>" target="_blank" rel="noopener"><?php echo t('تقويم جوجل'); ?></a>
                                 <?php endif; ?>
-                            </td>
+                            </div></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>

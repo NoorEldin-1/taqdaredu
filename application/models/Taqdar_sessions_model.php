@@ -2179,12 +2179,12 @@ class Taqdar_sessions_model extends CI_Model
             /* D5 — اعتذر المعلم او غاب بعد الدفع: الطالب يختار البديل او
                الاسترداد، والزر له وحده. */
             if ($status === 'declined' && $refund === 'choice') {
-                $tone = 'due'; $label = 'اعتذر المعلم — اختر موعدا بديلا أو الاسترداد';
+                $tone = 'due'; $label = 'اعتذر المعلم'; $hint = 'اختر موعدا بديلا أو الاسترداد.';
                 $button = (string) $actor === 'student' ? 'teacher_fault' : '';
             } elseif ($status === 'declined' && $refund === 'review') {
                 $tone = 'due'; $label = 'طلبك قيد مراجعة الإدارة';
             } elseif ($status === 'refunded' && $refund === 'pending') {
-                $label = 'ألغيت — يرد مبلغها خلال 5 أيام عمل خارج المنصة';
+                $label = 'ألغيت — يرد مبلغها'; $hint = 'يرد المبلغ خلال 5 أيام عمل خارج المنصة.';
             }
         } elseif ($status === 'expired') {
             $key = 'expired'; $tone = 'late'; $label = 'مضت مهلتها';

@@ -1322,9 +1322,11 @@ class Taqdar_billing_model extends CI_Model
         $net = $cq['q'] ? (int) $cq['q']['net'] : (int) $offer['price_halalas'];
 
         /* TQ-SUB-REUSE — معلق بفاتورة لم تدفع **وما زال يحجز مقعده** يعاد. */
+        /* المهلة تحسب قبل السلسلة: `hold_hours()` تقرأ `settings` على `$this->db` نفسه، فتأكل ما صف قبلها من شروط. */
+        $tq_hold_from = date('Y-m-d H:i:s', time() - $this->tq_grp->hold_hours() * 3600);
         $this->db->where('user_id', $user_id)->where('group_id', $group_id)
                  ->where('status', 'pending')->where('price', $net)
-                 ->where('created_at >', date('Y-m-d H:i:s', time() - $this->tq_grp->hold_hours() * 3600));
+                 ->where('created_at >', $tq_hold_from);
         if ($cq['q']) $this->db->where('coupon_id', (int) $cq['q']['coupon']['id']);
         $pend = $this->db->order_by('id', 'DESC')->limit(1)->get('subscriptions')->row_array();
         if ($pend) {
