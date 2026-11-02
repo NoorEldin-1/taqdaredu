@@ -176,7 +176,7 @@ class Taqdar_admin extends CI_Controller
             (int) $this->session->userdata('user_id'));
 
         $this->session->set_flashdata(!empty($r['ok']) ? 'flash_message' : 'error_message',
-            isset($r['msg']) ? $r['msg'] : 'تعذر حفظ الرابط.');
+            isset($r['msg']) ? $r['msg'] : t('تعذر حفظ الرابط.'));
         redirect(site_url('taqdar_admin/sessions'), 'location', 302);
     }
 

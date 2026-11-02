@@ -1940,7 +1940,7 @@ class Taqdar_parent_model extends CI_Model
                 $tq_ds = $this->taqdar_sessions_model->display_state($tq_row, null, 'student');
                 $tq_row['state'] = array('key' => $tq_ds['key'], 'label' => $tq_ds['label'], 'tone' => $tq_ds['tone'],
                                          'hint' => $tq_ds['hint']);
-                unset($tq_row['meet_url']);
+                unset($tq_row['meet_url'], $tq_row['recording_url']);
             }
             unset($tq_row);
         }
