@@ -5643,6 +5643,29 @@ class Taqdar extends CI_Controller
         $this->grp_join((int) $gs_id, (int) $user['id'], 'student');
     }
 
+    // TQ-GROUP gap — begin
+    /**
+     * GET student/group-sessions/<id>/recording — تسجيل حصة جماعية للعضو ولولي
+     * امره، عبر `tqs_video_embed()` لا رابط عار (كأختها `session_recording`).
+     */
+    public function group_session_recording($gs_id = 0)
+    {
+        $this->require_login();
+        $uid  = (int) $this->session->userdata('user_id');
+        $role = tq_role($uid);
+        if (!in_array($role, array('student', 'parent'), true)) show_404();
+        $row = $this->grp()->recording_for((int) $gs_id, $uid, $role);
+        if (!$row) show_404();
+        $this->show('tq_group_recording', 'تسجيل الحصة', array(
+            'tq_counts'   => $this->counts($uid, $role),
+            'user_id'     => $uid,
+            'tq_rec'      => $row,
+            'tq_rec_role' => $role,
+            'tq_back'     => $role === 'parent' ? 'parent/child?id=' . (int) $row['student_id'] : 'student/groups',
+        ));
+    }
+    // TQ-GROUP gap — end
+
     /** GET teacher/group-sessions/<id>/join — ويعلن «بدأت الآن» للاعضاء. */
     public function teacher_group_session_join($gs_id = 0)
     {

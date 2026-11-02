@@ -403,6 +403,19 @@ include 'portal_open.php';
                                     ? t('أقرب حصة:') . ' ' . tq_iso(html_escape(date('Y-m-d H:i', strtotime($tq_kgs['next_starts_at']))))
                                     : t('لا حصة قادمة مجدولة'); ?>
                             </span>
+                            <?php /* TQ-GROUP gap 4.4 — حضور الابن وتسجيلات ما فاته (عبر الحارس لا رابط عار) */
+                            foreach ($tq_grp_ci->tq_grp_pc->attendance_list((int) $tq_kg['id'], $tq_cid) as $tq_ka):
+                                if ($tq_ka['status'] !== 'completed') continue; ?>
+                                <span class="tq-micro" style="display:block">
+                                    <?php echo tq_iso(html_escape(date('Y-m-d H:i', strtotime($tq_ka['starts_at'])))); ?> ·
+                                    <?php /* ما لم يعلن ليس غيابا — قاعدة `attendance_rate()` نفسها */
+                                    echo $tq_ka['attendance'] === 'present' ? t('حضر')
+                                        : ($tq_ka['attendance'] === 'absent' ? t('لم يحضر') : t('لم يعلن الحضور بعد')); ?>
+                                    <?php if ($tq_ka['has_recording']): ?>
+                                        · <a href="<?php echo base_url('student/group-sessions/' . (int) $tq_ka['id'] . '/recording'); ?>"><?php echo t('شاهد التسجيل'); ?></a>
+                                    <?php endif; ?>
+                                </span>
+                            <?php endforeach; ?>
                         </span>
                     </li>
                 <?php endforeach; ?>

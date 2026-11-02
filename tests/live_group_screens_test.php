@@ -52,7 +52,11 @@ check(Taqdar_group_model::seats_text(0) === 'اكتملت المقاعد', 'full
 check(Taqdar_group_model::seats_text(1) === 'بقي مقعد واحد', 'one');
 check(Taqdar_group_model::seats_text(2) === 'بقي مقعدان', 'two');
 check(Taqdar_group_model::seats_text(5) === 'بقيت 5 مقاعد', 'three to ten');
-check(Taqdar_group_model::seats_text(14) === 'بقي 14 مقعدا', 'eleven and more');
+// TQ-GROUP gap D7: the count shows only when 5 or fewer remain.
+check(Taqdar_group_model::seats_text(6) === 'مقاعد متاحة', 'six remain: no count');
+check(Taqdar_group_model::seats_text(14) === 'مقاعد متاحة', 'many remain: no count');
+check(strpos(Taqdar_group_model::seats_text(14), '14') === false, 'no number leaks above five');
+check(Taqdar_group_model::seats_text(3) === 'بقيت 3 مقاعد', 'three still counted');
 
 // ---- Reminder window: scheduled, not reminded, starts within the next hour (+5 min slack).
 $now = strtotime('2026-11-10 14:10:00');
@@ -81,5 +85,41 @@ $none = Taqdar_group_model::summary($g2, array('sellable' => false, 'reason' => 
                                                 'price_halalas' => 19950, 'seats_left' => 0), array(), time());
 check($none['next_starts_at'] === null && $none['sessions_total'] === 0, 'no sessions → null next');
 check($none['seats_text'] === 'اكتملت المقاعد', 'full text');
+
+// ---- TQ-GROUP gap D4: 48h recording reminder, once, before the 7-day drop.
+$rec = array('status' => 'completed', 'recording_pending' => 1, 'recording_url' => '',
+             'completed_at' => '2026-11-10 16:00:00', 'recording_reminded_at' => null);
+check(Taqdar_group_model::recording_reminder_due($rec, strtotime('2026-11-12 16:30:00')), '48h+ pending is due');
+check(!Taqdar_group_model::recording_reminder_due($rec, strtotime('2026-11-12 10:00:00')), 'under 48h not yet');
+check(!Taqdar_group_model::recording_reminder_due(array('recording_reminded_at' => '2026-11-12 17:00:00') + $rec, strtotime('2026-11-13 10:00:00')), 'reminded once only');
+check(!Taqdar_group_model::recording_reminder_due(array('recording_pending' => 0) + $rec, strtotime('2026-11-13 10:00:00')), 'not pending: no reminder');
+check(!Taqdar_group_model::recording_reminder_due(array('recording_url' => 'https://youtu.be/x') + $rec, strtotime('2026-11-13 10:00:00')), 'already uploaded: no reminder');
+check(!Taqdar_group_model::recording_reminder_due(array('status' => 'scheduled') + $rec, strtotime('2026-11-13 10:00:00')), 'only completed');
+
+// ---- TQ-GROUP gap 4.4 admin: attendance figure (pure).
+$att = Taqdar_group_model::attendance_rate(array(
+    array('attendance' => 'present'), array('attendance' => 'present'), array('attendance' => 'present'),
+    array('attendance' => 'absent'), array('attendance' => null),
+));
+check($att['present'] === 3 && $att['absent'] === 1 && $att['total'] === 4, 'undeclared rows not counted');
+check($att['present_pct'] === 75 && $att['absent_pct'] === 25, 'rates');
+$none = Taqdar_group_model::attendance_rate(array());
+check($none['total'] === 0 && $none['present_pct'] === null, 'no data → null, not 0%');
+
+// ---- TQ-GROUP gap §5-1: "the teacher hasn't joined yet" for a student while the window is open.
+$gm = new Taqdar_group_model();
+$base = array('id' => 21, 'group_id' => 4, 'title' => 'x', 'starts_at' => '2026-11-10 15:00:00', 'duration_min' => 60,
+              'status' => 'scheduled', 'meet_url' => 'https://zoom.us/j/1', 'teacher_joined_at' => null);
+$ctx = array('now' => strtotime('2026-11-10 15:02:00'), 'grace_hours' => 6, 'lead_student' => 10, 'lead_teacher' => 15,
+             'member' => true, 'attendance' => null);
+$d = $gm->display_state($base, 7, 'student', $ctx);
+check($d['can_join'] && $d['note'] === 'المعلم لم يدخل بعد.' && $d['teacher_joined'] === false, 'student sees teacher-not-yet note');
+$d = $gm->display_state(array('teacher_joined_at' => '2026-11-10 14:58:00') + $base, 7, 'student', $ctx);
+check($d['note'] === '' && $d['teacher_joined'] === true, 'teacher joined: no note');
+$d = $gm->display_state($base, 9, 'teacher', $ctx);
+check($d['note'] === '', 'teacher never sees the note');
+$late = array('now' => strtotime('2026-11-10 15:15:00')) + $ctx;
+$d = $gm->display_state($base, 7, 'student', $late);
+check($d['note'] === '', 'past the late stage the note is dropped');
 
 echo "OK — {$checks} checks\n";

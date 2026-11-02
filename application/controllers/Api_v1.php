@@ -8538,7 +8538,43 @@ class Api_v1 extends CI_Controller
             'teacher_notes'     => $notes,
             'payments'          => array_map(array($this, 'parent_payment_out'), $d['payments']),
             'quiz_results'      => $this->child_quiz_results((int) $d['child']['id']),
+            /* TQ-GROUP gap 4.4 — مجموعات الابن بحضوره وتسجيلاته: حقل يضاف ولا يبدل. */
+            'groups'            => $this->child_groups_out((int) $d['child']['id']),
         ), '', array(), $h);
+    }
+
+    /** TQ-GROUP gap 4.4 — مجموعات الابن المباشرة بحضوره في كل حصة منتهية؛ بلا رابط لقاء، والتسجيل بنقطته الحارسة. */
+    private function child_groups_out($student_id)
+    {
+        if (!$this->grp()->enabled()) return array();
+        $out = array();
+        foreach ($this->grp()->groups_of_student((int) $student_id) as $g) {
+            $sum = $this->grp()->summary_of($g);
+            $rows = array();
+            foreach ($this->grp()->attendance_list((int) $g['id'], (int) $student_id) as $r) {
+                $rows[] = array(
+                    'id'                => $r['id'],
+                    'title'             => $r['title'],
+                    'starts_at'         => tq_api_date($r['starts_at']),
+                    'minutes'           => $r['duration_min'],
+                    'status'            => $r['status'],
+                    'attendance'        => $r['attendance'],
+                    'has_recording'     => $r['has_recording'],
+                    'recording_pending' => $r['recording_pending'],
+                    'recording_url'     => $r['has_recording'] ? site_url('api/v1/parent/group-sessions/' . $r['id'] . '/recording') : null,
+                );
+            }
+            $out[] = array(
+                'group_id'       => (int) $g['id'],
+                'title'          => (string) $g['title'],
+                'next_starts_at' => $sum && $sum['next_starts_at'] ? tq_api_date($sum['next_starts_at']) : null,
+                'sessions'       => $rows,
+                'attendance'     => Taqdar_group_model::attendance_rate(array_map(function ($r) {
+                    return array('attendance' => $r['attendance']);
+                }, array_filter($rows, function ($r) { return $r['status'] === 'completed'; }))),
+            );
+        }
+        return $out;
     }
 
     /**
@@ -10428,6 +10464,10 @@ class Api_v1 extends CI_Controller
                 'opens_at'      => $d['opens_ts'] ? tq_api_date(date('Y-m-d H:i:s', $d['opens_ts'])) : null,
                 'recording_url' => $d['state'] === 'recording_available' ? (string) $s['recording_url'] : null,
                 'has_meet_url'  => trim((string) $s['meet_url']) !== '',
+                /* TQ-GROUP gap §5-1 / 3.2 — يضاف ولا يبدل: دخل المعلم؟ ونقطة التسجيل الحارسة. */
+                'teacher_joined' => (bool) $d['teacher_joined'],
+                'recording_endpoint' => $d['state'] === 'recording_available'
+                    ? site_url('api/v1/' . ($actor === 'teacher' ? 'teacher' : 'student') . '/group-sessions/' . (int) $s['id'] . '/recording') : null,
                 'rescheduled_from' => !empty($s['rescheduled_from_at']) ? tq_api_date($s['rescheduled_from_at']) : null,
             );
         }
@@ -10509,6 +10549,52 @@ class Api_v1 extends CI_Controller
         if (empty($r['ok'])) $this->fail($this->model_msg($r, t('لا يفتح رابط هذه الحصة الآن.')), 'session_not_joinable', 409);
         $this->respond(tq_api_ok(array('url' => $r['url']), ''), 200);
     }
+
+    // TQ-GROUP gap — begin
+    /** GET /api/v1/{student|parent}/group-sessions/{id}/recording — تسجيل جماعي بالحارس نفسه (عضو · ولي امر). */
+    public function group_session_recording($id = 0)
+    {
+        $this->method('GET');
+        $u   = $this->require_portal(array('student', 'parent'));
+        $row = $this->grp()->recording_for((int) $id, (int) $u['id'], $this->role);
+        if (!$row) $this->fail('لا تسجيل لهذه الحصة في حسابك.', 'not_found', 404);
+        $url  = (string) $row['recording_url'];
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $this->read(array(
+            'id'        => (int) $row['id'],
+            'url'       => $url,
+            'provider'  => strpos($host, 'vimeo') !== false ? 'vimeo'
+                         : (strpos($host, 'drive.google') !== false ? 'drive' : 'youtube'),
+            'when_text' => (string) $row['when_text'],
+        ));
+    }
+
+    /** GET /api/v1/teacher/group-sessions/{id}/join — يرد الرابط وينقل الحصة الى `live` ويبلغ الاعضاء («بدأت الآن»). */
+    public function teacher_group_session_join($id = 0)
+    {
+        $this->method('GET');
+        $u = $this->require_teacher();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+        $r = $this->grp()->record_join((int) $id, (int) $u['id'], 'teacher');
+        if (empty($r['ok'])) $this->fail($this->model_msg($r, t('لا يفتح رابط هذه الحصة الآن.')), 'session_not_joinable', 409);
+        $this->respond(tq_api_ok(array('url' => $r['url']), ''), 200);
+    }
+
+    /** POST /api/v1/teacher/group-sessions/{id}/recording `{recording_url}` — تسجيل لاحق بعد الانتهاء، ويبلغ الاعضاء. */
+    public function teacher_group_session_recording($id = 0)
+    {
+        $this->method('POST');
+        $u  = $this->require_teacher();
+        $gs = $this->grp()->session((int) $id);
+        if (!$gs) $this->fail('لا حصة بهذا الرقم.', 'not_found', 404);
+        $this->teacher_group_row((int) $gs['group_id'], (int) $u['id']);
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+        $b = $this->body();
+        $r = $this->grp()->set_recording((int) $id, (string) ($b['recording_url'] ?? ''),
+                                         array('id' => (int) $u['id'], 'role' => 'teacher'));
+        $this->wrote($r, 'تعذر حفظ التسجيل.', 'recording_failed', array('id' => (int) $id));
+    }
+    // TQ-GROUP gap — end
 
     /** GET /api/v1/student/groups/{id}/ics — الجدول كله، أو `?session=` حصة واحدة. */
     public function group_ics($id = 0)

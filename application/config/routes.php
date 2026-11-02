@@ -316,6 +316,12 @@ $route['api/v1/student/foundation']             = 'api_v1/student_foundation';
 /* TQ-GROUP — المجموعات المباشرة. الكتابة قبل القراءة، والاطول قبل الاقصر. */
 $route['api/v1/student/buy-group']                  = 'api_v1/buy_group';
 $route['api/v1/student/group-sessions/(:num)/join'] = 'api_v1/group_session_join/$1';
+// TQ-GROUP gap — تسجيل جماعي بحارس، ودخول المعلم، وتسجيل لاحق (الكتابة قبل ما يقابلها من القراءة)
+$route['api/v1/student/group-sessions/(:num)/recording'] = 'api_v1/group_session_recording/$1';
+$route['api/v1/parent/group-sessions/(:num)/recording']  = 'api_v1/group_session_recording/$1';
+$route['api/v1/teacher/group-sessions/(:num)/join']      = 'api_v1/teacher_group_session_join/$1';
+$route['api/v1/teacher/group-sessions/(:num)/recording'] = 'api_v1/teacher_group_session_recording/$1';
+// TQ-GROUP gap — end
 $route['api/v1/student/groups/(:num)/ics']          = 'api_v1/group_ics/$1';
 $route['api/v1/student/groups/(:num)']              = 'api_v1/student_group/$1';
 $route['api/v1/student/groups']                     = 'api_v1/student_groups';
@@ -620,6 +626,9 @@ $route['student/buy-foundation']       = 'taqdar/buy_foundation';
    اطول، وكلها قبل `student/(:any)`. */
 $route['student/buy-group']                     = 'taqdar/buy_group';
 $route['student/group-sessions/(:num)/join']    = 'taqdar/group_session_join/$1';
+// TQ-GROUP gap — تسجيل الحصة الجماعية بحارس (عضو · ولي امر · معلم)
+$route['student/group-sessions/(:num)/recording'] = 'taqdar/group_session_recording/$1';
+// TQ-GROUP gap — end
 $route['student/groups/(:num)/ics']             = 'taqdar/group_ics/$1';
 $route['student/groups']                        = 'taqdar/student_groups';
 /* المعلم: الكتابة قبل العرض — `teacher/(:any)` تبتلع `groups/save` الى شاشة. */
