@@ -751,6 +751,85 @@ include 'portal_open.php';
   </form>
   <?php endif; ?>
 
+  <?php
+  /* ══ TQ-GROUP — مقعد في مجموعة مباشرة لابنك ═════════════════════════
+     والعروض من `offer()` نفسها التي يقرؤها محرك الشراء: ما لا يباع لا
+     يعرض. والسعر بالهللات فيطبع بالريال منها. وبلا مفتاح البيع لا شيء. */
+  $tq_pc_ci->load->model('taqdar_group_model', 'tq_grp_pp');
+  $tq_gp_offers = array();
+  if ($tq_pc_ci->tq_grp_pp->enabled()) {
+      foreach ($tq_pc_ci->tq_grp_pp->published() as $tq_gp_g) {
+          $tq_gp_s = $tq_pc_ci->tq_grp_pp->summary_of($tq_gp_g);
+          if ($tq_gp_s && $tq_gp_s['sellable']) $tq_gp_offers[] = $tq_gp_s;
+      }
+  }
+  if ($tq_gp_offers):
+  ?>
+  <form method="post" action="<?php echo base_url('parent/pay/group'); ?>" class="tq-pp"
+        style="margin-block-start:var(--tq-space-xl)">
+    <?php echo tq_csrf(); ?>
+    <section class="tq-card">
+      <div class="tq-card__head">
+        <h2 class="tq-card__title"><?php echo t('أو مقعدا في مجموعة مباشرة'); ?></h2>
+        <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('groups'); ?>"
+           target="_blank" rel="noopener"><?php echo t('تصفح المجموعات وجداولها'); ?></a>
+      </div>
+      <p class="tq-caption">
+        <?php echo t('تدفع مرة فينضم ابنك إلى جدول المجموعة كله. وإن ألغيت المجموعة قبل أول حصة يرد المبلغ يدويا خارج المنصة.'); ?>
+      </p>
+
+      <div class="tq-pp-kids" role="radiogroup" aria-label="<?php echo te('اختر الابن'); ?>">
+        <?php foreach ($tq_kids as $i => $k):
+          $kid = (int) ($k['student_id'] ?? 0);
+          if ($kid < 1) continue;
+          $name = trim(($k['first_name'] ?? '') . ' ' . ($k['last_name'] ?? '')) ?: t('ابنك');
+        ?>
+          <label class="tq-pick<?php echo $i === 0 ? ' is-on' : ''; ?>">
+            <input type="radio" name="child_id" value="<?php echo $kid; ?>" <?php echo $i === 0 ? ' checked' : ''; ?> required>
+            <span class="tq-pick__label"><?php echo html_escape($name); ?></span>
+          </label>
+        <?php endforeach; ?>
+      </div>
+
+      <div class="tq-pp-plans" role="radiogroup" aria-label="<?php echo te('اختر المجموعة'); ?>"
+           style="margin-block-start:var(--tq-space-l)">
+        <?php $tq_gp_first = true; foreach ($tq_gp_offers as $tq_gp_o): ?>
+          <label class="tq-pp-plan<?php echo $tq_gp_first ? ' is-on' : ''; ?>">
+            <input type="radio" name="group_id" value="<?php echo (int) $tq_gp_o['id']; ?>" <?php echo $tq_gp_first ? ' checked' : ''; ?> required>
+            <span class="tq-pp-plan__t"><?php echo html_escape($tq_gp_o['title']); ?></span>
+            <span class="tq-pp-plan__s">
+              <?php echo tq_num((int) $tq_gp_o['sessions_total']); ?> <?php echo t('حصة'); ?> · <?php echo html_escape($tq_gp_o['seats_text']); ?>
+            </span>
+            <span class="tq-pp-plan__p"><span class="tq-ltr"><?php echo number_format(((int) $tq_gp_o['price_halalas']) / 100, ((int) $tq_gp_o['price_halalas'] % 100) ? 2 : 0); ?></span> <?php echo t(' ريال'); ?></span>
+          </label>
+        <?php $tq_gp_first = false; endforeach; ?>
+      </div>
+
+      <div style="margin-block-start:var(--tq-space-l)">
+        <?php echo tq_coupon_field('group', 'group_id'); ?>
+      </div>
+
+      <div class="tq-pp-kids" role="radiogroup" aria-label="<?php echo te('طريقة الدفع'); ?>"
+           style="margin-block-start:var(--tq-space-l)">
+        <?php if ($tq_card_ready): ?>
+          <label class="tq-pick is-on">
+            <input type="radio" name="pay_method" value="tap" checked>
+            <span class="tq-pick__label"><?php echo t('بطاقة'); ?></span>
+          </label>
+        <?php endif; ?>
+        <label class="tq-pick<?php echo $tq_card_ready ? '' : ' is-on'; ?>">
+          <input type="radio" name="pay_method" value="manual" <?php echo $tq_card_ready ? '' : ' checked'; ?>>
+          <span class="tq-pick__label"><?php echo t('تحويل بنكي'); ?></span>
+        </label>
+      </div>
+
+      <div class="tq-formbar">
+        <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('أصدر فاتورة المقعد'); ?></button>
+      </div>
+    </section>
+  </form>
+  <?php endif; ?>
+
 <?php endif; ?>
 
 <style>
