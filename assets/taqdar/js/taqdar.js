@@ -589,13 +589,12 @@
     if (!boxes.length) return;
     var skew = parseInt(boxes[0].getAttribute('data-tq-now'), 10) * 1000 - Date.now();
     var now = function () { return Date.now() + skew; };
-    var tr = function (s) { return (window.TQ && TQ.t) ? TQ.t(s) : s; };
 
     var fmt = function (ms) {
       var s = Math.max(0, Math.floor(ms / 1000));
       var d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600),
           m = Math.floor(s % 3600 / 60), x = s % 60;
-      if (d > 0) return d + ' ' + tr('يوم') + ' ' + h + ' ' + tr('ساعة');
+      if (d > 0) return TQ.t('____ يوم ____ ساعة', d, h);
       if (h > 0) return h + ':' + (m < 10 ? '0' : '') + m + ':' + (x < 10 ? '0' : '') + x;
       return m + ':' + (x < 10 ? '0' : '') + x;
     };
