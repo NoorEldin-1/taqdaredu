@@ -87,7 +87,10 @@ $tq_label = array('draft' => t('مسودة'), 'review' => t('بانتظار ال
                     <td><?php echo $tq_sar($r['price_halalas']); ?></td>
                     <td><span class="tqa-num"><?php echo (int) $r['members']; ?></span>
                         <?php if ((int) $r['pending'] > 0): ?><small> + <?php echo (int) $r['pending']; ?> <?php echo t('معلق'); ?></small><?php endif; ?></td>
-                    <td><?php echo html_escape($r['seats_text']); ?></td>
+                    <td><?php /* TQ-GROUP gap D7 — الزائر لا يرى العدد فوق خمسة، والمسؤول يراه دائما */
+                        if ($r['seats_left'] === null): echo html_escape($r['seats_text']); else: ?>
+                        <span class="tqa-num"><?php echo (int) $r['seats_left']; ?></span> / <?php echo (int) $r['capacity']; ?>
+                        <?php endif; ?></td>
                     <td><span class="tqa-num"><?php echo (int) $r['sessions_total']; ?></span>
                         <small>(<?php echo (int) $r['sessions_left']; ?> <?php echo t('قادمة'); ?>)</small></td>
                     <td><?php /* TQ-GROUP gap 4.4 — الحضور المعلن في الحصص المنتهية */

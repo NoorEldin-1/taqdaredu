@@ -1431,6 +1431,8 @@ class Taqdar_group_model extends CI_Model
             $pend = $this->db->where('status', 'completed')->where('recording_pending', 1)
                              ->where('recording_reminded_at IS NULL', null, false)
                              ->where('completed_at <=', date('Y-m-d H:i:s', $now - self::RECORDING_REMIND_HOURS * 3600))
+                             /* وما بلغ مهلة الاسقاط لا يذكر: يسقط في الدورة نفسها، فتذكير «قبل ان يسقط» كذب. */
+                             ->where('completed_at >=', date('Y-m-d H:i:s', $now - self::RECORDING_WAIT_DAYS * 86400))
                              ->get(self::T_SESS)->result_array();
         } catch (Throwable $e) { $this->db->reset_query(); $pend = array(); }
         foreach ($pend as $r) {
