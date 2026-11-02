@@ -1020,7 +1020,13 @@ class Taqdar_wallet_model extends CI_Model
         $wid    = $wallet['id'];
 
         $n  = $this->post_sales($user_id);
-        $n += $this->reconcile_refunds($wid);
+        try {
+            $n += $this->reconcile_refunds($wid);
+        } catch (Throwable $e) {
+            /* العكس ذري فلم يكتب منه شيء، ويعاد في المزامنة التالية. */
+            $this->db->reset_query();
+            log_message('error', 'TQ-WALLET sync reconcile_refunds #' . (int) $wid . ': ' . $e->getMessage());
+        }
         $n += $this->release_matured($wid);
         $n += $this->reconcile_payouts($user_id);
         $this->recompute($wid);

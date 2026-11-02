@@ -2946,7 +2946,9 @@ class Taqdar_sessions_model extends CI_Model
                     $pack ? 'ألغيت حصة باقة' : 'استردت الحصة');
             } catch (Throwable $e) {
                 $this->db->reset_query();
-                log_message('error', 'TQ-SESSION-REVERSE: تعذر عكس حصة #' . (int) $row['id']);
+                $rev_failed = true;
+                log_message('error', 'TQ-SESSION-REVERSE: تعذر عكس حصة #' . (int) $row['id'] . ' — ' . $e->getMessage());
+                $this->audit('session.reverse_failed', (int) $row['id'], array('error' => $e->getMessage()));
             }
         } else {
             $this->void_invoice($row);
@@ -2956,21 +2958,31 @@ class Taqdar_sessions_model extends CI_Model
         $this->audit('session.' . ($paid ? 'refund' : 'cancel'), (int) $row['id'],
             array('reason' => $reason, 'actor' => (int) $actor_id, 'amount' => (int) $row['price_halalas']));
 
+        /* العكس ذري، فإن تعثر لم يمس قيد — ويقال للمسؤول صراحة لا يبتلع. */
+        $warn = !empty($rev_failed)
+            ? ' تنبيه: تعذر عكس قيد المعلم الآن فبقي في محفظته — راجع قيود محفظته قبل أي تسوية.'
+            : '';
+
         if ($pack) {
             return array('ok' => true, 'refunded' => false, 'pack' => true,
+                         'reverse_failed' => !empty($rev_failed),
                          'student_id' => (int) $row['student_id'],
                          'teacher_id' => (int) $row['teacher_id'],
                          'amount'     => (int) $row['price_halalas'],
-                         'msg' => 'ألغيت الحصة، وعادت إلى رصيد باقة الطالب، وعكس قيد معلمها إن كان قيد.'
-                                . ' ولا مال يرد: ثمنها في رصيده يحجز به من جديد.');
+                         'msg' => (!empty($rev_failed)
+                                    ? 'ألغيت الحصة، وعادت إلى رصيد باقة الطالب.'
+                                    : 'ألغيت الحصة، وعادت إلى رصيد باقة الطالب، وعكس قيد معلمها إن كان قيد.')
+                                . ' ولا مال يرد: ثمنها في رصيده يحجز به من جديد.' . $warn);
         }
 
         return array('ok' => true, 'refunded' => $paid,
+                     'reverse_failed' => !empty($rev_failed),
                      'student_id' => (int) $row['student_id'],
                      'teacher_id' => (int) $row['teacher_id'],
                      'amount'     => (int) $row['price_halalas'],
                      'msg' => $paid
-                         ? 'وسمت الحصة مستردة وعكس قيد معلمها. رد المبلغ إلى الطالب من لوحة تاب — المنصة لا تردها بنفسها.'
+                         ? (!empty($rev_failed) ? 'وسمت الحصة مستردة.' : 'وسمت الحصة مستردة وعكس قيد معلمها.')
+                           . ' رد المبلغ إلى الطالب من لوحة تاب — المنصة لا تردها بنفسها.' . $warn
                          : 'ألغيت الحصة، وشطبت فاتورتها، وحرر وقتها.');
     }
 
