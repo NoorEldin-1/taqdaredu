@@ -2551,4 +2551,8 @@ return array(
     '— ولا يذكر' => '— and does not mention',
     '— ولا يستعمل مثله في التشغيل الحقيقي، فالربط يسكت بعده بلا خطأ يظهر.' => '— never use one like it in production: the connection goes silent afterwards with no visible error.',
     '— وهذا بعينه ما يفشل فحص DMARC ويرسلها إلى المهملات.' => '— and that is exactly what fails the DMARC check and sends it to spam.',
+    'السطر الذهبي' => 'Gold line',
+    'حصص مباشرة مع زملائك' => 'Live sessions with your classmates',
+    'جدول حصص مباشرة مع معلمك ومجموعة صغيرة من زملائك، معلن قبل أن تنضم. تدفع مرة وتحضر الجدول كله، والتسجيلات تبقى لك.' => 'A schedule of live sessions with your teacher and a small group of classmates, announced before you join. Pay once, attend the whole schedule, and keep the recordings.',
+    'رأس قسم «المجموعات المباشرة» في الرئيسية وصفحة الباقات — يظهر بعد إطلاق البيع.' => 'Header of the "Live groups" section on the home and plans pages — shown once sales are launched.',
 );

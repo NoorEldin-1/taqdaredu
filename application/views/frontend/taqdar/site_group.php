@@ -25,6 +25,9 @@ include __DIR__ . '/site/site_pagehero.php';
       <p class="tq-flash tq-flash--err" role="alert"><?php echo html_escape($m); ?></p>
     <?php endif; ?>
 
+    <?php if (trim((string) ($g['image'] ?? '')) !== ''): ?>
+      <img class="grp-hero-img" src="<?php echo html_escape(tqs_img($g['image'], '')); ?>" alt="" width="1200" height="800">
+    <?php endif; ?>
     <div class="icard">
       <p class="grp-facts">
         <span><b><?php echo tqs_money((int) $sum['price_halalas']); ?></b> <?php echo t('للجدول كله'); ?></span>

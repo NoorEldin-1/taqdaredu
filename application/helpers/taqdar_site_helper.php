@@ -3168,3 +3168,81 @@ if (!function_exists('tqs_safe_next')) {
         return $v;
     }
 }
+
+if (!function_exists('tqs_group_card')) {
+    /**
+     * TQ-GROUP — بطاقة مجموعة واحدة من `summary_of()`: تطبعها `/groups`
+     * وقسم الرئيسية والباقات معا، فلا بطاقتان تفترقان عند أول حقل يضاف.
+     */
+    function tqs_group_card(array $g, $tag = 'h2')
+    {
+        $url = base_url('group/' . rawurlencode($g['slug']));
+        $h  = '<article class="icard grp-card">';
+        /* صورة البطاقة (TQ-IMG-NORM مقصوصة ٣:٢ وقت الرفع)، ولا بديل يخترع لما لم يرفع. */
+        $img = trim((string) ($g['image'] ?? ''));
+        if ($img !== '') {
+            $h .= '<a class="grp-card__media" href="' . $url . '" tabindex="-1" aria-hidden="true"><img src="'
+                . html_escape(tqs_img($img, '')) . '" alt="" loading="lazy" width="1200" height="800"></a>';
+        }
+        $h .= '<' . $tag . ' class="grp-card__t"><a href="' . $url . '">' . html_escape($g['title']) . '</a></' . $tag . '>';
+        if (!empty($g['next_starts_at'])) {
+            $h .= '<p class="tq-caption">' . t('أقرب حصة:') . ' <b class="tq-ltr">'
+                . html_escape(date('Y-m-d H:i', strtotime($g['next_starts_at']))) . '</b> ' . t('(توقيت مكة)') . '</p>';
+        }
+        $h .= '<p class="tq-caption">'
+            . html_escape(tq_count_units((int) $g['sessions_total'], 'حصة', 'حصتان', 'حصتين', 'حصص', 'حصة', '', 'nom'))
+            . ' · ' . html_escape($g['seats_text']) . '</p>';
+        $h .= '<p class="grp-card__price">' . tqs_money((int) $g['price_halalas']) . '</p>';
+        $h .= '<a class="btn btn--primary" href="' . $url . '">'
+            . ($g['sellable'] ? t('اعرض الجدول وانضم') : t('اعرض الجدول')) . '</a>';
+        return $h . '</article>';
+    }
+}
+
+if (!function_exists('tqs_groups_band')) {
+    /**
+     * TQ-GROUP — قسم «المجموعات المباشرة» في الرئيسية والباقات، جار قسم
+     * التأسيس. يرد فراغا والبيع مطفأ أو لا مجموعة منشورة: «بلا مفتاح لا شيء
+     * يتغير»، وقسم فارغ يعد بما لا يباع.
+     */
+    function tqs_groups_band($limit = 3)
+    {
+        try {
+            $CI = &get_instance();
+            $CI->load->model('taqdar_group_model', 'tq_grp_band');
+            $m = $CI->tq_grp_band;
+            if (!$m->enabled()) return '';
+            $uid  = (int) $CI->session->userdata('user_id');
+            $rows = array();
+            foreach ($m->published() as $g) {
+                $s = $m->summary_of($g, $uid);
+                if ($s) $rows[] = $s;
+                if (count($rows) >= (int) $limit) break;
+            }
+        } catch (Throwable $e) {
+            if (isset($CI)) $CI->db->reset_query();
+            return '';
+        }
+        if (!$rows) return '';
+
+        $h  = '<section class="section" id="groups" aria-labelledby="grp-band-title">' . "\n";
+        $h .= '  <div class="shell">' . "\n";
+        $h .= '    <div class="fnd26 reveal">' . "\n";
+        $h .= '      <div class="fnd26__head">' . "\n";
+        $h .= '        <p class="fnd26__eyebrow"><svg aria-hidden="true"><use href="#i-spark"></use></svg>'
+            . tq_text('groups', 'band_eyebrow', 'حصص مباشرة مع زملائك') . '</p>' . "\n";
+        $h .= '        <h2 id="grp-band-title">' . tq_text('groups', 'band_title', 'المجموعات المباشرة') . '</h2>' . "\n";
+        $h .= '        <p class="fnd26__lede">' . tq_text('groups', 'band_lede',
+                'جدول حصص مباشرة مع معلمك ومجموعة صغيرة من زملائك، معلن قبل أن تنضم. تدفع مرة وتحضر الجدول كله، والتسجيلات تبقى لك.') . '</p>' . "\n";
+        $h .= '        <div class="fnd26__rule" aria-hidden="true"><i></i></div>' . "\n";
+        $h .= '      </div>' . "\n";
+        $h .= '      <div class="grp-grid">' . "\n";
+        foreach ($rows as $g) $h .= '        ' . tqs_group_card($g, 'h3') . "\n";
+        $h .= '      </div>' . "\n";
+        $h .= '      <p style="text-align:center;margin-top:1.5rem"><a class="btn btn--ghost" href="' . base_url('groups') . '">'
+            . t('كل المجموعات') . '</a></p>' . "\n";
+        $h .= '    </div>' . "\n";
+        $h .= '  </div>' . "\n";
+        return $h . '</section>' . "\n";
+    }
+}

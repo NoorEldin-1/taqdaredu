@@ -112,3 +112,4 @@ $tq_rows = tqs_bundles();
         يجد ما يريده (لأنه لا يريد منهج صف أصلا) يجد هنا الباب الآخر.
         والمولد نفسه الذي في الرئيسية. */ ?>
 <?php echo tqs_foundation_band(); ?>
+<?php echo tqs_groups_band(); ?>

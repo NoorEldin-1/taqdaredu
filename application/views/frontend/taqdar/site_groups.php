@@ -25,24 +25,7 @@ include __DIR__ . '/site/site_pagehero.php';
     <?php else: ?>
       <div class="grp-grid">
         <?php foreach ($tq_rows as $g): if (!$g) continue; ?>
-          <article class="icard grp-card">
-            <h2 class="grp-card__t">
-              <a href="<?php echo base_url('group/' . rawurlencode($g['slug'])); ?>"><?php echo html_escape($g['title']); ?></a>
-            </h2>
-            <?php if ($g['next_starts_at']): ?>
-              <p class="tq-caption"><?php echo t('أقرب حصة:'); ?>
-                <b class="tq-ltr"><?php echo html_escape(date('Y-m-d H:i', strtotime($g['next_starts_at']))); ?></b>
-                <?php echo t('(توقيت مكة)'); ?></p>
-            <?php endif; ?>
-            <p class="tq-caption">
-              <?php echo html_escape(tq_count_units((int) $g['sessions_total'], 'حصة', 'حصتان', 'حصتين', 'حصص', 'حصة', '', 'nom')); ?>
-              · <?php echo html_escape($g['seats_text']); ?>
-            </p>
-            <p class="grp-card__price"><?php echo tqs_money((int) $g['price_halalas']); ?></p>
-            <a class="btn btn--primary" href="<?php echo base_url('group/' . rawurlencode($g['slug'])); ?>">
-              <?php echo $g['sellable'] ? t('اعرض الجدول وانضم') : t('اعرض الجدول'); ?>
-            </a>
-          </article>
+          <?php echo tqs_group_card($g); ?>
         <?php endforeach; ?>
       </div>
     <?php endif; ?>

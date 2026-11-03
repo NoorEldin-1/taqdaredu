@@ -238,6 +238,7 @@ foreach ($tq_why as $w):
 <?php include __DIR__ . '/_home_level_check.php'; ?>
 
 <?php echo tqs_foundation_band(); ?>
+<?php echo tqs_groups_band(); ?>
 
 <!-- ══════════ الجامعات ══════════ -->
 <?php $tq_unis = tqs_universities(); ?>

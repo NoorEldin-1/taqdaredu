@@ -333,4 +333,8 @@ return array(
     '— توفر' => '— save',
     '— جوالها يبدأ بـ' => '— its mobile numbers start with',
     '— واختيار ملف جديد يستبدله.</p>' => '— and choosing a new file replaces it.</p>',
+    '(توقيت مكة)' => '(Makkah time)',
+    'اعرض الجدول وانضم' => 'View schedule and join',
+    'كل المجموعات' => 'All groups',
+    'أقرب حصة:' => 'Next session:',
 );
