@@ -211,14 +211,18 @@ if ($tq_role === 'student') {
     }
 }
 
-/* TQ-GROUP — وبند «مجموعاتي» يرفع ان كان البيع مطفأ: «بلا مفتاح لا شيء
-   يتغير». والقراءة ملفوفة كأختها اعلاه. */
+/* TQ-GROUP — وبند «مجموعاتي» يرفع ان كان البيع مطفأ ولا شيء للطالب فيه.
+   والقراءة ملفوفة كأختها اعلاه. */
 if ($tq_role === 'student' || $tq_role === 'teacher') {
     $tq_has_grp = false;
     try {
         $tq_gr_ci = &get_instance();
         $tq_gr_ci->load->model('taqdar_group_model', 'tq_rail_grp');
-        $tq_has_grp = $tq_gr_ci->tq_rail_grp->enabled();
+        /* المفتاح يحجب البيع لا ما يملكه صاحبه: المعلم يجهز مجموعته قبل
+           الإطلاق، والطالب العضو يدخل مجموعته ولو أطفئ البيع. */
+        $tq_has_grp = $tq_role === 'teacher'
+            || $tq_gr_ci->tq_rail_grp->enabled()
+            || (bool) $tq_gr_ci->tq_rail_grp->groups_of_student((int) $tq_gr_ci->session->userdata('user_id'));
     } catch (Throwable $tq_gr_e) {
         $tq_has_grp = false;
     }
