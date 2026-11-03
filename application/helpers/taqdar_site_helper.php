@@ -3239,8 +3239,9 @@ if (!function_exists('tqs_groups_band')) {
         $h .= '      <div class="grp-grid">' . "\n";
         foreach ($rows as $g) $h .= '        ' . tqs_group_card($g, 'h3') . "\n";
         $h .= '      </div>' . "\n";
-        $h .= '      <p style="text-align:center;margin-top:1.5rem"><a class="btn btn--ghost" href="' . base_url('groups') . '">'
-            . t('كل المجموعات') . '</a></p>' . "\n";
+        /* زر القسم الداكن من ورقته (`fnd26__more`): `btn--ghost` نصه داكن فيختفي على الخلفية. */
+        $h .= '      <p style="text-align:center;margin-top:1.5rem"><a class="fnd26__more" href="' . base_url('groups') . '">'
+            . t('كل المجموعات') . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></a></p>' . "\n";
         $h .= '    </div>' . "\n";
         $h .= '  </div>' . "\n";
         return $h . '</section>' . "\n";
