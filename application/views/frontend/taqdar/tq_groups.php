@@ -34,9 +34,11 @@ include 'portal_open.php';
 
 <?php if (!$tq_groups): ?>
     <div class="tq-card">
-        <?php echo tq_s_empty('users', 'sand', t('لم تنضم إلى مجموعة بعد'),
+        <?php // بلا مفتاح البيع لا صفحة /groups، فزر إليها يقود إلى 404.
+              $tq_on = $tq_ci->tq_grp->enabled();
+              echo tq_s_empty('users', 'sand', t('لم تنضم إلى مجموعة بعد'),
               t('المجموعة جدول حصص مباشرة مع معلمك وزملائك، تدفع مرة وتحضر الجدول كله.'),
-              t('تصفح المجموعات'), base_url('groups'), false, 'primary'); ?>
+              $tq_on ? t('تصفح المجموعات') : '', $tq_on ? base_url('groups') : '', false, 'primary'); ?>
     </div>
 <?php endif; ?>
 

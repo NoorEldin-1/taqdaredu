@@ -5632,7 +5632,7 @@ class Taqdar extends CI_Controller
     /** GET student/groups — مجموعاتي: الجدول والدخول والتسجيلات. */
     public function student_groups()
     {
-        $this->grp_on();
+        // مفتاح البيع يحجب البيع لا ما يملكه صاحبه: الصفحة تعرض عضوياته أو فراغها.
         $this->student('tq_groups', 'مجموعاتي');
     }
 
@@ -5710,8 +5710,8 @@ class Taqdar extends CI_Controller
     /** GET teacher/groups/<id> (0 = جديدة) — تحرير المجموعة وجدولها وحضورها. */
     public function teacher_group($group_id = 0)
     {
+        // المعلم يجهز مجموعته قبل إطلاق البيع، والإدارة تراجعها (المفتاح يحجب البيع وحده).
         $user = $this->require_role('teacher');
-        $this->grp_on();
         $gid = (int) $group_id;
         $g   = $gid ? $this->grp()->get($gid) : null;
         if ($gid && (!$g || (int) $g['teacher_id'] !== (int) $user['id'])) show_404();
@@ -5729,7 +5729,6 @@ class Taqdar extends CI_Controller
     public function teacher_group_save()
     {
         $user = $this->write_guard('teacher');
-        $this->grp_on();
         $data = array();
         foreach (array('id', 'title', 'description', 'grade_id', 'subject_id', 'capacity', 'access_days',
                        'enroll_until', 'price', 'status') as $k) {
