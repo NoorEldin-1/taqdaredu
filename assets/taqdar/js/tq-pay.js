@@ -28,8 +28,13 @@
     loaded[src] = new Promise(function (ok, no) {
       var s = document.createElement('script');
       s.src = src; s.async = true;
-      s.onload = function () { ok(); };
-      s.onerror = function () { delete loaded[src]; no(new Error('load ' + src)); };
+      /* مكتبة Apple Pay من تاب تبحث عن سكربت أبل في الصفحة، فإن وجدته
+         قرأت حاله من `data-status` ولم تنتظر حدثا. وسكربت بلا الخاصية
+         يقرأ `null` إلى الأبد: الزر يرسم ولا يطلب ملف التاجر، والضغط لا
+         يفعل شيئا في كروم وإيدج. فنكتب الحال كما يكتبها خطافها. */
+      s.setAttribute('data-status', 'loading');
+      s.onload = function () { s.setAttribute('data-status', 'ready'); ok(); };
+      s.onerror = function () { s.setAttribute('data-status', 'error'); delete loaded[src]; no(new Error('load ' + src)); };
       document.head.appendChild(s);
     });
     return loaded[src];
@@ -137,7 +142,7 @@
     }).then(function () {
       var sdk = window.TapApplepaySDK;
       if (!sdk || !sdk.render) throw new Error('no sdk');
-      var c = self.cfg.customer;
+      var c = self.cfg.customer, ready = false, early = false;
       host.hidden = false;
       sdk.render({
         debug: false,
@@ -156,8 +161,14 @@
           locale: self.ar ? 'ar' : 'en', theme: 'dark', type: 'buy', edges: 'curved'
         },
         onCancel: function () { self.say('', false); },
+        /* المكتبة تنادي `onReady` في `finally` بعد جلب ملف التاجر، نجح أو
+           فشل. فخطأ قبله رفض من تاب لملف التاجر (`bundle_id mismatch` على
+           نطاق لم يسجل) لا دفعة فشلت: الزر يرفع صامتا ولا يقرأ المشتري
+           «تعذر إتمام الدفع» قبل أن يضغط شيئا. */
+        onReady: function () { if (!early) ready = true; },
         onError: function (err) {
           if (window.console) console.warn('TQ Apple Pay', err);
+          if (!ready) { early = true; host.hidden = true; return; }
           self.fail();
         },
         onSuccess: function (data) {
