@@ -23,7 +23,7 @@ include __DIR__ . '/site/site_pagehero.php';
         <a class="btn btn--primary" href="<?php echo base_url('contact'); ?>"><?php echo t('تواصل معنا'); ?></a>
       </div>
     <?php else: ?>
-      <div class="grp-grid">
+      <div class="fnd26__grid grp26-grid" style="--fnd-cols:<?php echo min(3, count($tq_rows)); ?>">
         <?php foreach ($tq_rows as $g): if (!$g) continue; ?>
           <?php echo tqs_group_card($g); ?>
         <?php endforeach; ?>

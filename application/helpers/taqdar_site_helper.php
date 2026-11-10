@@ -3177,28 +3177,96 @@ if (!function_exists('tqs_group_card')) {
     function tqs_group_card(array $g, $tag = 'h2')
     {
         $url = base_url('group/' . rawurlencode($g['slug']));
-        $h  = '<article class="icard grp-card">';
-        /* صورة البطاقة (TQ-IMG-NORM مقصوصة ٣:٢ وقت الرفع)، ولا بديل يخترع لما لم يرفع. */
-        $img = trim((string) ($g['image'] ?? ''));
-        if ($img !== '') {
-            $h .= '<a class="grp-card__media" href="' . $url . '" tabindex="-1" aria-hidden="true"><img src="'
-                . html_escape(tqs_img($img, '')) . '" alt="" loading="lazy" width="1200" height="800"></a>';
-        }
-        $h .= '<' . $tag . ' class="grp-card__t"><a href="' . $url . '">' . html_escape($g['title']) . '</a></' . $tag . '>';
+        $per = (int) ($g['per_session_halalas'] ?? 0);
+
+        /* بطاقة التأسيس نفسها (`.fnd26-card`): القوس الذهبي والوسام والسعر
+           «/ للحصة» — قسمان متجاوران في الرئيسية بشكلين يقرآن منتجين من
+           منصتين. والرابط على العنوان يمتد على البطاقة كلها. */
+        $h  = '<article class="fnd26-card grp26">';
+        $h .= tqs_group_media($g);
+        $h .= '<div class="fnd26-card__body">';
+        $h .= '<' . $tag . ' class="fnd26-card__title"><a href="' . $url . '">' . html_escape($g['title']) . '</a></' . $tag . '>';
+
+        $facts = array();
         if (!empty($g['next_starts_at'])) {
-            $h .= '<p class="tq-caption">' . t('أقرب حصة:') . ' <b class="tq-ltr">'
-                . html_escape(date('Y-m-d H:i', strtotime($g['next_starts_at']))) . '</b> ' . t('(توقيت مكة)') . '</p>';
+            $ts = strtotime($g['next_starts_at']);
+            $facts[] = array('i-calendar', t('تبدأ') . ' <b class="tq-ltr">' . date('Y-m-d', $ts) . '</b> '
+                . t('الساعة') . ' <b class="tq-ltr">' . date('H:i', $ts) . '</b>');
         }
-        $h .= '<p class="tq-caption">'
-            . html_escape(tq_count_units((int) $g['sessions_total'], 'حصة', 'حصتان', 'حصتين', 'حصص', 'حصة', '', 'nom'))
-            . ' · ' . html_escape($g['seats_text']) . '</p>';
-        $h .= (int) ($g['per_session_halalas'] ?? 0) > 0
-            ? '<p class="grp-card__price">' . tqs_money((int) $g['per_session_halalas']) . ' <small>' . t('للحصة') . '</small></p>'
-              . '<p class="tq-caption">' . tqs_money((int) $g['price_halalas']) . ' ' . t('للجدول كله') . '</p>'
-            : '<p class="grp-card__price">' . tqs_money((int) $g['price_halalas']) . '</p>';
-        $h .= '<a class="btn btn--primary" href="' . $url . '">'
-            . ($g['sellable'] ? t('اعرض الجدول وانضم') : t('اعرض الجدول')) . '</a>';
+        $facts[] = array('i-clock', html_escape(tq_count_units((int) $g['sessions_total'], 'حصة', 'حصتان', 'حصتين', 'حصص', 'حصة', '', 'nom'))
+            . ' ' . t('مباشرة مع المعلم'));
+        $facts[] = array('i-users', html_escape($g['seats_text']));
+        $h .= '<ul class="fnd26-card__list">';
+        foreach ($facts as $f) {
+            $h .= '<li><span class="fnd26-card__tick" aria-hidden="true"><svg><use href="#i-check"></use></svg></span><span>'
+                . $f[1] . '</span></li>';
+        }
+        $h .= '</ul>';
+
+        $h .= '<div class="fnd26-card__foot"><div class="fnd26-card__row">';
+        $h .= '<p class="fnd26-card__price">' . tqs_money($per > 0 ? $per : (int) $g['price_halalas'])
+            . ($per > 0 ? '<small>' . t('للحصة') . '</small>' : '') . '</p>';
+        if (!empty($g['sellable'])) {
+            $h .= '<p class="fnd26-card__open"><i aria-hidden="true"></i>' . t('التسجيل مفتوح') . '</p>';
+        }
+        $h .= '</div>';
+        if ($per > 0) {
+            $h .= '<p class="fnd26-card__pack"><b>' . tqs_money((int) $g['price_halalas']) . '</b> '
+                . t('للجدول كله، تدفع مرة واحدة') . '</p>';
+        }
+        $h .= '<span class="fnd26-card__cta" aria-hidden="true">'
+            . ($g['sellable'] ? t('اعرض الجدول وانضم') : t('اعرض الجدول'))
+            . '<svg class="dir-icon"><use href="#i-arrow"></use></svg></span>';
+        $h .= '</div></div>';
         return $h . '</article>';
+    }
+}
+
+if (!function_exists('tqs_group_art')) {
+    /**
+     * TQ-GROUP — صورة المجموعة ووسامها: ما رفعه المسؤول اولا، ثم صورة
+     * مادتها من السمة، ثم القوس بلا صورة. وهي قاعدة `tqs_foundation_art()`.
+     */
+    function tqs_group_art(array $g)
+    {
+        $map = array(
+            7  => array('img/subj-islamic.webp', 'ق', 'rtl'),
+            8  => array('img/subj-arabic.webp',  'أ ب', 'rtl'),
+            9  => array('img/subj-math.webp',    '+ ×', 'ltr'),
+            10 => array('img/subj-science.webp', 'H₂O', 'ltr'),
+            16 => array('img/subj-english.webp', 'A b', 'ltr'),
+            17 => array('img/blog-1.webp',       'ت', 'rtl'),
+            18 => array('img/blog-3.webp',       '</>', 'ltr'),
+            19 => array('img/blog-7.webp',       'ف', 'rtl'),
+            20 => array('img/about-boy.webp',    'ب', 'rtl'),
+            21 => array('img/blog-6.webp',       'ح', 'rtl'),
+            22 => array('img/blog-2.webp',       '?', 'ltr'),
+        );
+        $sid = (int) ($g['subject_id'] ?? 0);
+        $up  = trim((string) ($g['image'] ?? ''));
+        $img = $up !== '' ? tqs_img($up, '') : (isset($map[$sid]) ? tq_site_asset($map[$sid][0]) : '');
+        return array(
+            'img'   => $img,
+            'glyph' => isset($map[$sid]) ? $map[$sid][1] : '',
+            'dir'   => isset($map[$sid]) ? $map[$sid][2] : 'rtl',
+        );
+    }
+}
+
+if (!function_exists('tqs_group_media')) {
+    /** القوس الذهبي والوسام — بوسم `tqs_foundation_media()` نفسه. */
+    function tqs_group_media(array $g, $class = 'fnd26-card__media')
+    {
+        $a = tqs_group_art($g);
+        return '<div class="' . html_escape($class) . '" aria-hidden="true">'
+             . '<span class="fnd26-card__arch' . ($a['img'] === '' ? ' fnd26-card__arch--bare' : '') . '">'
+             . '<span class="fnd26-card__pic">'
+             . ($a['img'] !== '' ? '<img src="' . html_escape($a['img']) . '" alt="" width="620" height="620" loading="lazy" decoding="async">' : '')
+             . '</span></span>'
+             . '<span class="fnd26-card__glyph"'
+             . ($a['glyph'] !== '' ? ' dir="' . $a['dir'] . '">' . html_escape($a['glyph'])
+                                   : '><svg><use href="#i-cap"></use></svg>')
+             . '</span></div>';
     }
 }
 
@@ -3239,7 +3307,7 @@ if (!function_exists('tqs_groups_band')) {
                 'جدول حصص مباشرة مع معلمك ومجموعة صغيرة من زملائك، معلن قبل أن تنضم. تدفع مرة وتحضر الجدول كله، والتسجيلات تبقى لك.') . '</p>' . "\n";
         $h .= '        <div class="fnd26__rule" aria-hidden="true"><i></i></div>' . "\n";
         $h .= '      </div>' . "\n";
-        $h .= '      <div class="grp-grid">' . "\n";
+        $h .= '      <div class="fnd26__grid" style="--fnd-cols:' . min(3, count($rows)) . '">' . "\n";
         foreach ($rows as $g) $h .= '        ' . tqs_group_card($g, 'h3') . "\n";
         $h .= '      </div>' . "\n";
         /* زر القسم الداكن من ورقته (`fnd26__more`): `btn--ghost` نصه داكن فيختفي على الخلفية. */

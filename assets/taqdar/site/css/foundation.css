@@ -680,3 +680,32 @@ span.fndp-tutor__img{display:grid;place-items:center;font-size:19px}
   background:var(--paper);border:1px solid var(--gold-line);border-radius:14px}
 .grp-sched li.is-off{opacity:.6;text-decoration:line-through}
 .grp-facts{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 14px;color:var(--ink-2)}
+
+/* TQ-GROUP — بطاقة المجموعة بهيكل بطاقة التأسيس (`.fnd26-card`)، وصفحتها
+   بهيكل صفحة المسار (`fndp-*`). والجدول صفوف بيوم وتاريخ وساعة: من يقرر
+   الانضمام يسأل «أيناسب أسبوعي؟» قبل الثمن. */
+.grp26-grid{margin-block-end:32px}
+.grp26 .fnd26-card__list li b{color:var(--ink)}
+.grp26-tz{margin:0 0 12px;color:var(--ink-3);font-size:13px}
+.grp26-sched{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.grp26-sched__row{
+  display:grid;grid-template-columns:34px minmax(70px,auto) auto auto 1fr auto;
+  align-items:center;gap:6px 14px;padding:10px 14px;
+  background:var(--paper);border:1px solid var(--gold-line-soft,var(--gold-line));border-radius:14px;
+}
+.grp26-sched__n{
+  display:grid;place-items:center;inline-size:30px;block-size:30px;border-radius:50%;
+  background:var(--petrol);color:#E9DCC0;font-family:'Cairo',sans-serif;font-weight:700;font-size:13px;
+}
+.grp26-sched__day{color:var(--ink);font-family:'Cairo',sans-serif;font-weight:700;font-size:14.5px}
+.grp26-sched__date{color:var(--ink-2);font-weight:600;font-size:14px}
+.grp26-sched__time{color:var(--petrol);font-family:'Cairo',sans-serif;font-weight:700;font-size:15px}
+.grp26-sched__len{color:var(--ink-3);font-size:13px;justify-self:end}
+.grp26-sched__tag{padding:2px 10px;border-radius:999px;background:rgba(0,0,0,.06);color:var(--ink-3);font-size:12px}
+.grp26-sched__row.is-past,.grp26-sched__row.is-off{opacity:.55}
+.grp26-sched__row.is-off .grp26-sched__date{text-decoration:line-through}
+@media (max-width:560px){
+  .grp26-sched__row{grid-template-columns:30px 1fr auto;row-gap:2px}
+  .grp26-sched__date{grid-column:2}
+  .grp26-sched__len,.grp26-sched__tag{grid-column:3;grid-row:1}
+}
