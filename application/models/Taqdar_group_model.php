@@ -1592,6 +1592,9 @@ class Taqdar_group_model extends CI_Model
             'seats_left'      => $seats === null ? null : (int) $seats,
             'seats_text'      => self::seats_text($seats === null ? null : (int) $seats),
             'sessions_total'  => $total,
+            /* ثمن الحصة الواحدة مشتق لا مخزن: المجموعة تباع مقعدا بجدولها،
+               والرقم الذي يقارن به الزائر هو الحصة. */
+            'per_session_halalas' => $total > 0 ? intdiv((int) ($offer['price_halalas'] ?? ($group['price'] ?? 0)), $total) : 0,
             'sessions_left'   => $left,
             'first_starts_at' => $first,
             'next_starts_at'  => $next,

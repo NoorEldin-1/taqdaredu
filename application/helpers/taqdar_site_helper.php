@@ -3192,7 +3192,10 @@ if (!function_exists('tqs_group_card')) {
         $h .= '<p class="tq-caption">'
             . html_escape(tq_count_units((int) $g['sessions_total'], 'حصة', 'حصتان', 'حصتين', 'حصص', 'حصة', '', 'nom'))
             . ' · ' . html_escape($g['seats_text']) . '</p>';
-        $h .= '<p class="grp-card__price">' . tqs_money((int) $g['price_halalas']) . '</p>';
+        $h .= (int) ($g['per_session_halalas'] ?? 0) > 0
+            ? '<p class="grp-card__price">' . tqs_money((int) $g['per_session_halalas']) . ' <small>' . t('للحصة') . '</small></p>'
+              . '<p class="tq-caption">' . tqs_money((int) $g['price_halalas']) . ' ' . t('للجدول كله') . '</p>'
+            : '<p class="grp-card__price">' . tqs_money((int) $g['price_halalas']) . '</p>';
         $h .= '<a class="btn btn--primary" href="' . $url . '">'
             . ($g['sellable'] ? t('اعرض الجدول وانضم') : t('اعرض الجدول')) . '</a>';
         return $h . '</article>';

@@ -30,6 +30,9 @@ include __DIR__ . '/site/site_pagehero.php';
     <?php endif; ?>
     <div class="icard">
       <p class="grp-facts">
+        <?php if ((int) ($sum['per_session_halalas'] ?? 0) > 0): ?>
+          <span><b><?php echo tqs_money((int) $sum['per_session_halalas']); ?></b> <?php echo t('للحصة'); ?></span>
+        <?php endif; ?>
         <span><b><?php echo tqs_money((int) $sum['price_halalas']); ?></b> <?php echo t('للجدول كله'); ?></span>
         <span><?php echo html_escape(tq_count_units((int) $sum['sessions_total'], 'حصة', 'حصتان', 'حصتين', 'حصص', 'حصة', '', 'nom')); ?></span>
         <span><?php echo html_escape($sum['seats_text']); ?></span>

@@ -260,6 +260,7 @@ return array(
     'لفصل دراسي' => 'for one term',
     'لكل' => 'per',
     'للحصة' => 'per session',
+    'للجدول كله' => 'for the full schedule',
     'للعام الدراسي كاملا' => 'for the whole school year',
     'لم تجد ____ في صندوق الوارد؟ ابحث في «الرسائل غير المرغوبة»' => 'Cannot find ____ in your inbox? Look in the Spam folder',
     'لم تختر صورة.' => 'You did not choose an image.',
